@@ -1,0 +1,7 @@
+﻿Currency ,Currency Description, Activity Long Stay , Unit Cost Long Stay  , Total Cost Long Stay, Activity  , Unit Cost  , Total Cost 
+DZ22K,"Unspecified Acute Lower Respiratory Infection with Interventions, with CC Score 9+",1325,5878,7787915,73,1359,99199
+DZ22L,"Unspecified Acute Lower Respiratory Infection with Interventions, with CC Score 0-8",530,3930,2083103,75,1111,83320
+DZ22M,"Unspecified Acute Lower Respiratory Infection without Interventions, with CC Score 13+",5593,3985,22287343,2906,833,2421410
+DZ22N,"Unspecified Acute Lower Respiratory Infection without Interventions, with CC Score 9-12",9625,3208,30881381,7163,728,5213056
+DZ22P,"Unspecified Acute Lower Respiratory Infection without Interventions, with CC Score 5-8",9287,2682,24907088,10858,685,7437286
+DZ22Q,"Unspecified Acute Lower Respiratory Infection without Interventions, with CC Score 0-4",4711,2234,10525097,13857,560,7766553

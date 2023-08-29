@@ -1,0 +1,130 @@
+
+# Run the intervention programmes and create the figures
+
+## Load the necessary R scripts
+
+```{r}
+
+source("R/main.R")
+source("R/run_scenarios.R")
+source("R/utils.R")
+
+# Create the immune list for the rsvie package from the outcomes in the XX package
+source("R/immune_info.R")
+
+```
+
+# Create an RSVmodel class from the rsvie package and run the intervention
+
+```{r}
+
+RSVempty <- make_rsv_programme(S = 100)
+RSVempty <- add_risks_and_economics(RSVempty)
+
+# Main run
+run_base_sims(RSVempty)
+# Sens analysis 
+run_coverages_sims(RSVempty)
+
+```
+
+# Create figures 2–4 in main text
+
+```{r}
+
+# Figure 2
+source(here::here("R", "fig2.R"))
+df_fig2 <- load_data_fig2()
+fig2 <- plot_fig2(df_fig2)
+fig2
+ggsave(here::here("figs", "main", "fig2.png"), width = 15, height = 12, units = "in", dpi = 300)
+
+# Figure 3
+source(here::here("R", "fig3.R"))
+df_fig3 <- load_data_fig2()
+fig3a <- plot_fig3a(df_fig3)
+fig3b <- plot_fig3bc()
+fig3a + fig3b + plot_annotation(tag_levels = "A")
+ggsave(here::here("figs", "main", "fig3.pdf"), width = 16, height = 12)
+
+# Figure 4
+source(here::here("R", "fig4_5.R"))
+ppds <- crossing(x = seq(0, 200, 5), y = seq(0, 200, 5))
+thresholds <- c(20000, 30000)
+df_fig4 <- load_data_fig4("unbound_ss", ppds, thresholds)
+fig4 <- plot_figs4(df_fig4, 20000)
+ggsave(here::here("figs", "main", "fig4.pdf"), width = 18, height = 20)
+
+```
+
+# Create figures 5 in main text
+
+```{r}
+source(here::here("R", "fig4_5.R"))
+
+# run cea on sens
+ppds <- crossing(x = seq(0, 200, 5), y = seq(0, 200, 5))
+thresholds <- c(20000, 30000)
+run_cea_sens(ppds, thresholds)
+
+df_fig5 <- load_data_fig5()
+fig5 <- plot_fig5(df_fig5)
+ggsave(here::here("figs", "main", "fig5.pdf"))
+
+
+```
+
+## Plot supplementary figures
+### Supplementry figures on impact
+
+```{r}
+
+source(here::here("R", "supp_fig.R"))
+p1 <- plot_burden_by_age_group()
+p2 <- plot_burden_by_outcomes()
+p1 / p2 + plot_layout(guides = "collect")
+ggsave(here::here("figs", "supp", "figS2.pdf"), width = 12, height = 14)
+
+```
+
+### Sensitivity analysis figures
+
+```{r}
+
+# run cea on sens
+ppds <- crossing(x = seq(0, 200, 5), y = seq(0, 200, 5))
+thresholds <- c(20000, 30000)
+run_cea_sens(ppds, thresholds)
+
+# Varying the ICER threshold
+fig_S3 <- plot_figs4(cea_metrics, 30000)
+ggsave(here::here("figs", "supp", "figS3.pdf"), width = 18, height = 20)
+
+# Varying the programmes (remove seasonsal with catch-up)
+df_figS5 <- load_data_fig4("unbound_ss", ppds, thresholds, scaling = c(1, 1, 1, 1), type_string = "C")
+fig_S4 <- plot_figs4(df_figS5, 20000)
+ggsave(here::here("figs", "supp", "figS4.pdf"), width = 18, height = 20)
+
+# Varying coverage
+for (x in seq(50, 90, 10))
+    for (y in seq(70, 90, 10)) {
+    string_name <- paste0("unbound_ss_", x, "_", y)
+    cea_metrics <- read_rds(file = here::here("outputs", "scenarios", paste0("opt_", string_name), paste0("cea_metrics_", "A", ".rds")))
+    fig_sX <- plot_figs4(cea_metrics, 20000, y, x)
+    ggsave(here::here("figs", "supp", paste0("figS_", x, "_", y, ".pdf")), width = 18, height = 20) 
+}
+
+
+
+```
+
+### Higher granularity figures
+
+```{r}
+
+source(here::here("R", "supp_fig.R"))
+finer_df <- generate_finer_df()
+finer_fig <- plot_finer(finer_df)
+ggsave(here::here("figs", "supp", paste0("figS9.pdf")), width = 25, height = 20) 
+
+```

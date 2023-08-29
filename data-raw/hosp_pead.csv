@@ -1,0 +1,5 @@
+﻿Currency ,Currency Description,  Activity Long Stay , Unit Cost Long Stay  , Total Cost Long Stay, Activity  , Unit Cost  , Total Cost 
+PD15A,Paediatric Acute Bronchiolitis with CC Score 5+,279,9703.41,2707251.12,162,1715.46,277904.42
+PD15B,Paediatric Acute Bronchiolitis with CC Score 2-4,438,4868.73,2132503.05,671,1303.7,874783.57
+PD15C,Paediatric Acute Bronchiolitis with CC Score 1,395,3717.15,1468273.33,1054,1108.51,1168366.88
+PD15D,w 0,927,3436.79,3185907.95,2991,1029.66,3079707.71

@@ -1,0 +1,471 @@
+
+# Go through this information
+
+```{r}
+# data.table, dampack, hesim
+library(data.table)
+library(hesim)
+library(dampack)
+library(patchwork)
+library(furrr)
+library(tidyverse)
+
+#plan(multisession, workers = 20)
+
+source(here::here("R", "cea.R"))
+cea_table <- load_cea_table(paste0("opt_", "unbound_ss"))
+
+run_plot_2d_cea <- function(string_name, ppds, thresholds, scaling = c(1, 1, 1, 1), type_string = "A") {
+    ppds <- ppds
+    thresholds <- thresholds
+    scaling <-  c(1, 1, 1, 1)
+    cea_table <- load_cea_table(paste0("opt_", string_name))
+
+    cea_table <- cea_table %>% mutate(qaly = 
+        case_when(doses_mab > 0 ~ qaly * scaling[1], TRUE ~ qaly)) 
+    cea_table <- cea_table %>% mutate(qaly = 
+        case_when(doses_mat > 0 ~ qaly * scaling[2], TRUE ~ qaly)) 
+    cea_table <- cea_table %>% mutate(cost = 
+        case_when(doses_mab > 0 ~ cost * scaling[3], TRUE ~ cost)) 
+    cea_table <- cea_table %>% mutate(cost = 
+        case_when(doses_mat > 0 ~ cost * scaling[4], TRUE ~ cost)) 
+
+    cat("Generating ppd samples", string_name, "\n")
+    full_psa <- generate_ppd_samples(cea_table, ppds)
+    cea_metrics <- generate_cea_metrics(full_psa, ppds, thresholds)
+    cat("Plotting ", string_name, "\n")
+    write_rds(full_psa, file = here::here("outputs", "scenarios", paste0("opt_", string_name), paste0("full_psa_", type_string, ".rds")))
+    write_rds(cea_metrics, file = here::here("outputs", "scenarios", paste0("opt_", string_name), paste0("cea_metrics_", type_string, ".rds")))
+    if (type_string == "A") {
+        string_name_plot <- string_name
+    } else {
+        string_name_plot <- paste0(string_name, "_", type_string)
+    }
+    plot_grids(cea_metrics, string_name_plot)
+}
+
+
+run_plot_2d_cea_no_cu <- function(string_name, ppds, thresholds, scaling = c(1, 1, 1, 1), type_string = "A") {
+    
+    cea_table <- load_cea_table_no_cu(paste0("opt_", string_name))
+
+
+    cea_table <- cea_table %>% mutate(qaly = 
+        case_when(doses_mab > 0 ~ qaly * scaling[1], TRUE ~ qaly)) 
+    cea_table <- cea_table %>% mutate(qaly = 
+        case_when(doses_mat > 0 ~ qaly * scaling[2], TRUE ~ qaly)) 
+    cea_table <- cea_table %>% mutate(cost = 
+        case_when(doses_mab > 0 ~ cost * scaling[3], TRUE ~ cost)) 
+    cea_table <- cea_table %>% mutate(cost = 
+        case_when(doses_mat > 0 ~ cost * scaling[4], TRUE ~ cost)) 
+
+    cat("Generating ppd samples", string_name, "\n")
+    full_psa <- generate_ppd_samples(cea_table, ppds)
+    cea_metrics <- generate_cea_metrics(full_psa, ppds, thresholds)
+    cat("Plotting ", string_name, "\n")
+    write_rds(cea_metrics, file = here::here("outputs", "scenarios", paste0("opt_", string_name), paste0("cea_metrics_", type_string, ".rds")))
+    if (type_string == "A") {
+        string_name_plot <- string_name
+    } else {
+        string_name_plot <- paste0(string_name, "_", type_string)
+    }
+    plot_grids(cea_metrics, string_name_plot)
+}
+
+
+
+plot_2d_cea <- function(string_name, type_string = "A") {
+    cea_metrics <- read_rds(file = here::here("outputs", "scenarios", paste0("opt_", string_name), paste0("cea_metrics_", type_string, ".rds")))
+    plot_grids(cea_metrics, string_name)
+}
+
+plot_2d_cea_alt <- function(string_name, type_string = "A") {
+    cea_metrics <- read_rds(file = here::here("outputs", "scenarios", paste0("opt_", string_name), paste0("cea_metrics_", type_string, ".rds")))
+    if (type_string == "A") {
+        string_name_plot <- string_name
+    } else {
+        string_name_plot <- paste0(string_name, "_", type_string)
+    }    
+    plot_grids_alt(cea_metrics, string_name_plot)
+}
+
+
+
+ppds <- crossing(x = seq(0, 200, 5), y = seq(0, 200, 5))
+thresholds <- c(20000, 30000)
+#run_plot_2d_cea_no_cu("unbound_ss", ppds, thresholds, scaling = c(1, 1, 1, 1), type_string = "C")
+
+#plot_2d_cea_alt("unbound_ss", type_string = "C")
+
+
+run_plot_2d_cea("unbound_ss", ppds, thresholds)
+run_plot_2d_cea("bound_ss", ppds, thresholds)
+run_plot_2d_cea("unbound_ls", ppds, thresholds)
+run_plot_2d_cea("bound_ls", ppds, thresholds)
+
+# Coverage possibilities
+run_plot_2d_cea("unbound_ss_c1", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_c2", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_c3", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_c4", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_c5", ppds, thresholds)
+
+run_plot_2d_cea("unbound_ss", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_c5", ppds, thresholds)
+
+
+
+plot_2d_cea("unbound_ss")
+plot_2d_cea("bound_ss")
+plot_2d_cea("unbound_ls")
+plot_2d_cea("bound_ls")
+
+plot_2d_cea("unbound_ss_c2")
+
+```
+
+
+# Closer look 
+
+```{r}
+
+run_plot_2d_cea_zoom <- function(string_name, ppds, thresholds) {
+    cea_table <- load_cea_table(paste0("opt_", string_name))
+    cat("Generating ppd samples", string_name, "\n")
+    full_psa <- generate_ppd_samples(cea_table, ppds)
+    cea_metrics <- generate_cea_metrics(full_psa, ppds, thresholds)
+    cea_metrics
+}
+
+run_plot_2d_cea_zoom_no_cu <- function(string_name, ppds, thresholds) {
+    cea_table <- load_cea_table_no_cu(paste0("opt_", string_name))
+    cat("Generating ppd samples", string_name, "\n")
+    full_psa <- generate_ppd_samples(cea_table, ppds)
+    cea_metrics <- generate_cea_metrics(full_psa, ppds, thresholds)
+    cea_metrics
+}
+
+
+get_detailed_info <- function(string_name, string_name_alt, threshold) {
+    unbound_ss_zoom_mat <- run_plot_2d_cea_zoom(string_name, ppds_zoom_mat, thresholds)$inmb %>% 
+        mutate(product = "Maternal vac programme\n (if la-mAB expensive)") %>% rename(ppd = ppd_mat, ppd_fixed = ppd_mab)
+    unbound_ss_zoom_mab <- run_plot_2d_cea_zoom(string_name, ppds_zoom_mab, thresholds)$inmb %>% 
+        mutate(product = "LA-mAB programme\n (if mat-vac expensive)")  %>% rename(ppd = ppd_mab, ppd_fixed = ppd_mat)
+
+    bind_rows(unbound_ss_zoom_mat, unbound_ss_zoom_mab) %>% filter(threshold == !!threshold) %>% mutate(sens = string_name_alt)
+}
+
+get_detailed_info_no_cu <- function(string_name, string_name_alt, threshold) {
+    unbound_ss_zoom_mat <- run_plot_2d_cea_zoom_no_cu(string_name, ppds_zoom_mat, thresholds)$inmb %>% 
+        mutate(product = "Maternal vac programme\n (if la-mAB expensive)") %>% rename(ppd = ppd_mat, ppd_fixed = ppd_mab)
+    unbound_ss_zoom_mab <- run_plot_2d_cea_zoom_no_cu(string_name, ppds_zoom_mab, thresholds)$inmb %>% 
+        mutate(product = "LA-mAB programme\n (if mat-vac expensive)")  %>% rename(ppd = ppd_mab, ppd_fixed = ppd_mat)
+
+    bind_rows(unbound_ss_zoom_mat, unbound_ss_zoom_mab) %>% filter(threshold == !!threshold) %>% mutate(sens = string_name_alt)
+}
+
+
+
+summarise_detailed %>% 
+    ggplot() + geom_line(aes(x = ppd, y = prob, color = scenario), size = 3) + 
+    facet_grid(vars(sens), vars(product)) + theme_bw() + 
+    labs(x = "CCPA", y = "Probability optimal", color = "Scenario") + 
+    scale_color_manual(values= c("gray", "#c07002", "#fcae44", "#0d4fb2","#f0de16",  "#91BAd6")) +
+    scale_x_continuous(breaks = seq(0, 200, 20)) +
+    theme(text = element_text(size = 16))
+
+
+````
+
+
+# Cost-effective intervention based on expected ICER and concept of dominance, and expected INMB
+
+```{r}
+
+run_plot_2d_cea("unbound_ss_c1", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_c2", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_c3", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_c4", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_c5", ppds, thresholds)
+
+
+run_plot_2d_cea_peg <- function(string_name, plot_name) {
+
+    cea_metrics <- read_rds(file = here::here("outputs", "scenarios", paste0("opt_", string_name), "cea_metrics_A.rds"))
+
+    ppd_mat_max <- cea_metrics$icer %>% filter(scenario == "base", threshold == 20000) %>% pull(ppd_mat) %>% min
+    ppd_mab_max <- cea_metrics$icer %>% filter(scenario == "base", threshold == 20000) %>% pull(ppd_mab) %>% min
+
+    ppd_mab_min <- cea_metrics$icer %>% filter(threshold == 20000, ppd_mat == 0, scenario == "mat_yr") %>% pull(ppd_mab) %>% min
+    ppd_mat_min <- 0
+
+
+    df_plot <- data.frame(
+        name = plot_name,
+        y = ppd_mab_min,
+        x = 0,
+        yend = ppd_mab_max,
+        xend = ppd_mat_max
+    )
+}
+
+
+run_plot_2d_cea_peg_C <- function(string_name, plot_name) {
+    string_name <- "unbound_ss"
+    cea_metrics <- read_rds(file = here::here("outputs", "scenarios", paste0("opt_", string_name), "cea_metrics_A.rds"))
+
+    ppd_mat_max <- cea_metrics$inmb %>% filter(scenario == "base", threshold == 20000) %>% pull(ppd_mat) %>% min
+    ppd_mab_max <- cea_metrics$inmb %>% filter(scenario == "base", threshold == 20000) %>% pull(ppd_mab) %>% min
+
+    ppd_mab_min <- cea_metrics$inmb %>% filter(threshold == 20000, ppd_mat == 0, scenario == "mat_yr") %>% pull(ppd_mab) %>% min
+    ppd_mat_min <- 0
+
+
+    df_plot <- data.frame(
+        name = plot_name,
+        y = ppd_mab_min,
+        x = 0,
+        yend = ppd_mab_max,
+        xend = ppd_mat_max
+    )
+}
+
+
+product_equiv_grad <- bind_rows(
+    run_plot_2d_cea_peg("unbound_ss", "Base (multi-season efficacy, short-stay)"),
+    run_plot_2d_cea_peg("unbound_ls", "Multi-season efficacy, long+short-stay"),
+    run_plot_2d_cea_peg("bound_ss", "Single season efficacy, short-stay"),
+    run_plot_2d_cea_peg("bound_ls", "Single season efficacy, long+short-stay")
+)
+
+product_equiv_grad %>%
+    ggplot() + 
+    xlim(0, 120) + ylim(0, 120) +
+    geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = name), alpha = 0.7, size = 3) + 
+    labs(y = "CCPA monolconal antibodies (£)",
+            x = "CCPA maternal vaccination (£)", color = "Coverage of product", 
+            title = "Product equivalence line for costs + efficacies") + theme_bw() + 
+            theme(text = element_text(size = 16))
+ggsave(here::here("figs", "cea_sens.png") )
+
+
+product_equiv_grad_cov <- bind_rows(
+    run_plot_2d_cea_peg("unbound_ss", "Base (Mat cov 0.6, vac cov 0.9)"),
+    run_plot_2d_cea_peg("unbound_ss_c1", "Mat cov 0.4, vac cov 0.9"),
+    run_plot_2d_cea_peg("unbound_ss_c2", "Mat cov 0.7, vac cov 0.9"),
+    run_plot_2d_cea_peg("unbound_ss_c3", "Mat cov 0.6, vac cov 0.7"),
+    run_plot_2d_cea_peg("unbound_ss_c4", "Mat cov 0.4, vac cov 0.7"),
+    run_plot_2d_cea_peg("unbound_ss_c5", "Mat cov 0.7, vac cov 0.7"),
+    run_plot_2d_cea_peg_C("unbound_ss", "Mat cov 0.7, vac cov 0.7")
+)
+
+
+product_equiv_grad_cov %>%
+    ggplot() + 
+    xlim(0, 120) + ylim(0, 120) +
+    geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = name), size = 3) + 
+    labs(y = "CCPA monolconal antibodies (£)",
+            x = "CCPA maternal vaccination (£)", color = "Coverage of product", 
+            title = "Product equivalence line for different coverages") + theme_bw() + 
+            theme(text = element_text(size = 16))
+ggsave(here::here("figs", "cea_cov.png") )
+
+```
+
+
+## Cost-effectiveness of the adult vaccination programme 
+
+
+```{r}
+
+library(furrr)
+library(data.table)
+library(hesim)
+library(dampack)
+library(patchwork)
+
+source(here::here("R", "cea.R"))
+
+cea_table <- load_cea_table_oa(paste0("oa_unbound_ls"))
+model_type <- "oa_unbound_ls"
+load(here::here("outputs", "scenarios", model_type, "RSV_lav_pal.RData"))
+load(here::here("outputs", "scenarios", model_type, "RSV_lav_65.RData"))
+load(here::here("outputs", "scenarios", model_type, "RSV_lav_75.RData"))
+get_doses(RSV_lav_pal, "base", "none", 10, FALSE)
+get_doses(RSV_lav_65, "lav_65", "lav", 10, FALSE)
+get_doses(RSV_lav_75, "lav_75", "lav", 10, FALSE)
+
+run_plot_oa_cea <- function(string_name, ppds, thresholds) {
+    cea_table <- load_cea_table_oa(paste0(string_name))
+    cat("Generating ppd samples", string_name, "\n")
+    full_psa <- generate_ppd_samples_oa(cea_table, ppds)
+    cea_metrics <- generate_cea_metrics_oa(full_psa, ppds, thresholds)
+    cat("Plotting ", string_name, "\n")
+    write_rds(cea_metrics, file = here::here("outputs", "scenarios", paste0(string_name), "cea_metrics_A.rds"))
+    plot_grids_oa(cea_metrics, string_name)
+}
+
+plot_oa_cea <- function(string_name) {
+    cea_metrics <- read_rds(file = here::here("outputs", "scenarios", paste0(string_name), "cea_metrics_A.rds"))
+    plot_grids_oa(cea_metrics, string_name)
+}
+
+
+
+run_plot_oa_cea("oa_unbound_ls", ppds_oa, thresholds)
+run_plot_oa_cea("oa_unbound_ss", ppds_oa, thresholds)
+run_plot_oa_cea("oa_bound_ls", ppds_oa, thresholds)
+run_plot_oa_cea("oa_bound_ss", ppds_oa, thresholds)
+
+run_plot_oa_cea("oa_bound_ls_high_mort", ppds_oa, thresholds)
+run_plot_oa_cea("oa_unbound_ls_high_mort", ppds_oa, thresholds)
+
+cea_table1 <- load_cea_table_oa(paste0("oa_unbound_ls"))
+cea_table2 <- load_cea_table_oa(paste0("oa_unbound_ss"))
+
+
+```
+
+
+```{r}
+
+cea_metrics_A <- readRDS(file = here::here("outputs", "scenarios", paste0("opt_", "unbound_ss"), paste0("cea_metrics_", "A", ".rds")))
+full_psa <- readRDS(file = here::here("outputs", "scenarios", paste0("opt_", "unbound_ss"), paste0("full_psa_", "A", ".rds")))
+
+
+full_psa_base <- full_psa %>% summarise(cost = mean(cost), qaly = mean(qaly), .by = c("ppd_mab", "ppd_mat", "scenario")) 
+
+library(dampack)
+
+tab <- full_psa_base %>% filter(ppd_mab == 80, ppd_mat == 70) %>% mutate(cost = cost - 43703283) 
+icer <- calculate_icers(cost = tab$cost, effect = tab$qaly, strategies = tab$scenario) %>% filter(Status == "ND") %>%
+    mutate(guide = case_when(ICER <= 20000~"CE", ICER > 20000~"not CE") ) %>%
+    mutate(Cost_y = lag(Cost), Effect_y = lag(Effect) )
+
+tab %>% 
+    ggplot() + 
+        geom_segment(data = icer, aes(x = Effect, xend = Effect_y, y = Cost, yend = Cost_y, color = guide)) +
+        geom_point(aes(qaly, cost, fill = scenario), shape = 21, size = 4) +
+        scale_color_manual(values = c("black", "red")) +         
+        scale_fill_manual(values = c("black", "#c07002", "#fcae44", "#f0de16", "#0d4fb2", "#91BAd6")) + 
+        theme_bw()
+
+```
+
+
+```{r}
+
+
+# data.table, dampack, hesim
+library(data.table)
+library(hesim)
+library(dampack)
+library(patchwork)
+library(furrr)
+library(tidyverse)
+
+ppds <- crossing(x = seq(0, 200, 5), y = seq(0, 200, 5))
+thresholds <- c(20000, 30000)
+
+#plan(multisession, workers = 20)
+
+source(here::here("R", "cea.R"))
+cea_table <- load_cea_table(paste0("opt_", "unbound_ss"))
+
+run_plot_2d_cea_full <- function(string_name, ppds, thresholds, scaling = c(1, 1, 1, 1), type_string = "A") {
+    cea_table <- load_cea_table(paste0("opt_", string_name))
+
+    cea_table <- cea_table %>% mutate(qaly = 
+        case_when(doses_mab > 0 ~ qaly * scaling[1], TRUE ~ qaly)) 
+    cea_table <- cea_table %>% mutate(qaly = 
+        case_when(doses_mat > 0 ~ qaly * scaling[2], TRUE ~ qaly)) 
+    cea_table <- cea_table %>% mutate(cost = 
+        case_when(doses_mab > 0 ~ cost * scaling[3], TRUE ~ cost)) 
+    cea_table <- cea_table %>% mutate(cost = 
+        case_when(doses_mat > 0 ~ cost * scaling[4], TRUE ~ cost)) 
+
+    cat("Generating ppd samples", string_name, "\n")
+    full_psa <- generate_ppd_samples(cea_table, ppds)
+    cea_metrics <- generate_cea_metrics_full(full_psa, ppds, thresholds)
+    cat("Plotting ", string_name, "\n")
+    write_rds(full_psa, file = here::here("outputs", "scenarios", paste0("opt_", string_name), paste0("full_psa_", type_string, ".rds")))
+    write_rds(cea_metrics, file = here::here("outputs", "scenarios", paste0("opt_", string_name), paste0("cea_metrics_", type_string, ".rds")))
+    if (type_string == "A") {
+        string_name_plot <- string_name
+    } else {
+        string_name_plot <- paste0(string_name, "_", type_string)
+    }
+}
+
+run_plot_2d_cea("unbound_ss_50_70", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_60_70", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_70_70", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_80_70", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_90_70", ppds, thresholds)
+
+run_plot_2d_cea("unbound_ss_50_80", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_60_80", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_70_80", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_80_80", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_90_80", ppds, thresholds)
+
+run_plot_2d_cea("unbound_ss_50_90", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_60_90", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_70_90", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_80_90", ppds, thresholds)
+run_plot_2d_cea("unbound_ss_90_90", ppds, thresholds)
+
+relabel_sce <- c("base" = "Palivizumab progamme",
+    "mab_sea" = "Seasonal la-mAbs",
+    "mab_sea_cu" = "Seasonal la-mAbs with catch-up", 
+    "mat_sea" = "Seasonal maternal programme",
+    "mat_yr" = "Year-round maternal programme",
+    "mab_yr" = "Year-round la-mAbs programme"
+    )
+
+
+covs <- crossing(x = seq(50, 90, 10), y = seq(70, 90, 10))
+full_data_rshinyB <- map2_df(covs$x, covs$y, 
+    function(x, y) {
+        names_string <- paste0("unbound_ss_", x, "_", y)
+        cea_metrics <- readRDS(file = here::here("outputs", "scenarios", paste0("opt_", names_string), paste0("cea_metrics_A.rds")))
+        cea_metric_trim <- cea_metrics$inmb %>% filter(ppd_mab == ppd_mat, threshold == 20000) %>% 
+            mutate(prob = prob * 100) 
+        map_df(seq(0, 200, 5),
+            function(y) {
+                temp_ppd <- cea_metric_trim %>% filter(ppd_mab == y) 
+                map_df(1:6,
+                    ~data.frame(
+                        scenario = rep(temp_ppd[.x, 2] , temp_ppd[.x, 5])
+                    )
+                ) %>% mutate(sample = 1:nrow(.), ppd = y)
+            }
+        ) %>% mutate(cov_mat = x, cov_mab = y)
+    }
+) %>% mutate(scenario = recode(scenario, !!!relabel_sce))
+
+horizontal_lines_data <- data.frame(
+  xintercept = seq(2.5, 150, 5)   # y-coordinate for the horizontal line(s)
+)
+
+
+full_data_rshinyB %>% arrange(ppd, scenario) %>% filter(ppd <= 150) %>% 
+    ggplot() + geom_tile(aes(ppd, sample, fill = scenario)) + 
+    facet_grid(rows = vars(cov_mab), cols = vars(cov_mat)) + theme_bw() + 
+   # geom_vline(data = horizontal_lines_data, aes(xintercept = xintercept), 
+   #          color = "white", size = 0.4) +
+    scale_fill_manual(values = c("gray50", "#c07002", "#fcae44", "#0d4fb2", "#91BAd6")) + 
+    scale_y_continuous(expand = c(0, 0),
+        sec.axis = sec_axis(~ . , name = "Coverage of la-mAB programme (%)", breaks = NULL, labels = NULL))  +
+    scale_x_continuous(expand = c(0, 0), 
+        sec.axis = sec_axis(~ . , name = "Coverage of MV programme (%)", breaks = NULL, labels = NULL), breaks = seq(0, 140, 30)) + 
+    theme(text = element_text(size = 15),
+        axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10)),
+        axis.title.x.top = element_text(margin = margin(t = 0, r = 0, b = 10, l = 0))
+    ) + 
+    labs(x = "CCPA for MV and la-mAB ", y = "Proportion of MC samples (%)", fill = "Optimal scenario")
+ggsave(here::here("figs", "paper", "fig4.pdf"))
+
+
+
+```

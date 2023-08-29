@@ -1,0 +1,8 @@
+﻿Currency ,Currency Description, Activity  , Unit Cost  , Total Cost 
+XC01Z,"Adult Critical Care, 6 or more Organs Supported",8980,3079,27647316
+XC02Z,"Adult Critical Care, 5 Organs Supported",35311,2892,102113860
+XC03Z,"Adult Critical Care, 4 Organs Supported",124814,2798,349190656
+XC04Z,"Adult Critical Care, 3 Organs Supported",279411,2636,736599487
+XC05Z,"Adult Critical Care, 2 Organs Supported",363564,2466,896596238
+XC06Z,"Adult Critical Care, 1 Organ Supported",380700,1777,676673268
+XC07Z,"Adult Critical Care, 0 Organs Supported",45557,1837,83668606

@@ -1,0 +1,86 @@
+﻿Currency Code,Currency Description,Service Code,Service Description, Attendances ,National Average Unit Cost,Total Costs,No. Data Submissions
+VB01Z,"Emergency Medicine, Any Investigation with Category 5 Treatment",T01A,Type 01 admitted,23,655.00,15065.00,1
+VB01Z,"Emergency Medicine, Any Investigation with Category 5 Treatment",T01NA,Type 01 non admitted,41,642.00,26322.00,1
+VB01Z,"Emergency Medicine, Any Investigation with Category 5 Treatment",T01UNK,Type 01 Unknown,19425,1140.93,22162583.65,122
+VB01Z,"Emergency Medicine, Any Investigation with Category 5 Treatment",T02UNK,Type 02 Unknown,1319,143.43,189179.09,17
+VB01Z,"Emergency Medicine, Any Investigation with Category 5 Treatment",T03NA,Type 03 non admitted,31,195.19,6050.89,5
+VB01Z,"Emergency Medicine, Any Investigation with Category 5 Treatment",T03UNK,Type 03 Unknown,146,480.22,70111.91,23
+VB02Z,"Emergency Medicine, Category 3 Investigation with Category 4 Treatment",T01A,Type 01 admitted,915,562.00,514230.00,1
+VB02Z,"Emergency Medicine, Category 3 Investigation with Category 4 Treatment",T01NA,Type 01 non admitted,369,551.00,203319.00,1
+VB02Z,"Emergency Medicine, Category 3 Investigation with Category 4 Treatment",T01UNK,Type 01 Unknown,355144,766.32,272153968.09,123
+VB02Z,"Emergency Medicine, Category 3 Investigation with Category 4 Treatment",T02UNK,Type 02 Unknown,168,308.46,51821.19,12
+VB02Z,"Emergency Medicine, Category 3 Investigation with Category 4 Treatment",T03A,Type 03 admitted,3,317.22,951.66,2
+VB02Z,"Emergency Medicine, Category 3 Investigation with Category 4 Treatment",T03NA,Type 03 non admitted,65,98.17,6380.96,3
+VB02Z,"Emergency Medicine, Category 3 Investigation with Category 4 Treatment",T03UNK,Type 03 Unknown,3104,603.25,1872485.52,25
+VB03Z,"Emergency Medicine, Category 3 Investigation with Category 1-3 Treatment",T01A,Type 01 admitted,1728,321.00,554688.00,1
+VB03Z,"Emergency Medicine, Category 3 Investigation with Category 1-3 Treatment",T01NA,Type 01 non admitted,2705,315.00,852075.00,1
+VB03Z,"Emergency Medicine, Category 3 Investigation with Category 1-3 Treatment",T01UNK,Type 01 Unknown,980425,481.19,471766589.18,123
+VB03Z,"Emergency Medicine, Category 3 Investigation with Category 1-3 Treatment",T02UNK,Type 02 Unknown,11521,183.51,2114263.44,18
+VB03Z,"Emergency Medicine, Category 3 Investigation with Category 1-3 Treatment",T03A,Type 03 admitted,41,154.62,6339.48,2
+VB03Z,"Emergency Medicine, Category 3 Investigation with Category 1-3 Treatment",T03NA,Type 03 non admitted,18849,103.05,1942316.01,9
+VB03Z,"Emergency Medicine, Category 3 Investigation with Category 1-3 Treatment",T03UNK,Type 03 Unknown,16933,387.60,6563157.90,46
+VB03Z,"Emergency Medicine, Category 3 Investigation with Category 1-3 Treatment",T04NA,Type 04 non admitted,878,109.68,96299.04,1
+VB03Z,"Emergency Medicine, Category 3 Investigation with Category 1-3 Treatment",T04UNK,Type 04 Unknown,31,156.91,4864.26,3
+VB04Z,"Emergency Medicine, Category 2 Investigation with Category 4 Treatment",T01A,Type 01 admitted,4065,482.00,1959330.00,1
+VB04Z,"Emergency Medicine, Category 2 Investigation with Category 4 Treatment",T01NA,Type 01 non admitted,1396,472.00,658912.00,1
+VB04Z,"Emergency Medicine, Category 2 Investigation with Category 4 Treatment",T01UNK,Type 01 Unknown,1107192,591.08,654442258.88,124
+VB04Z,"Emergency Medicine, Category 2 Investigation with Category 4 Treatment",T02UNK,Type 02 Unknown,1193,207.32,247337.73,16
+VB04Z,"Emergency Medicine, Category 2 Investigation with Category 4 Treatment",T03A,Type 03 admitted,26,309.16,8038.22,2
+VB04Z,"Emergency Medicine, Category 2 Investigation with Category 4 Treatment",T03NA,Type 03 non admitted,1003,153.93,154389.74,9
+VB04Z,"Emergency Medicine, Category 2 Investigation with Category 4 Treatment",T03UNK,Type 03 Unknown,14008,440.75,6174049.80,46
+VB04Z,"Emergency Medicine, Category 2 Investigation with Category 4 Treatment",T04UNK,Type 04 Unknown,5,184.02,920.10,2
+VB05Z,"Emergency Medicine, Category 2 Investigation with Category 3 Treatment",T01A,Type 01 admitted,370,344.00,127280.00,1
+VB05Z,"Emergency Medicine, Category 2 Investigation with Category 3 Treatment",T01NA,Type 01 non admitted,465,337.00,156705.00,1
+VB05Z,"Emergency Medicine, Category 2 Investigation with Category 3 Treatment",T01UNK,Type 01 Unknown,233283,481.81,112397903.48,124
+VB05Z,"Emergency Medicine, Category 2 Investigation with Category 3 Treatment",T02UNK,Type 02 Unknown,17503,91.15,1595470.05,16
+VB05Z,"Emergency Medicine, Category 2 Investigation with Category 3 Treatment",T03A,Type 03 admitted,259,160.44,41553.96,1
+VB05Z,"Emergency Medicine, Category 2 Investigation with Category 3 Treatment",T03NA,Type 03 non admitted,2047,159.55,326603.63,12
+VB05Z,"Emergency Medicine, Category 2 Investigation with Category 3 Treatment",T03UNK,Type 03 Unknown,13749,295.87,4067848.71,45
+VB05Z,"Emergency Medicine, Category 2 Investigation with Category 3 Treatment",T04NA,Type 04 non admitted,14,208.35,2916.90,1
+VB05Z,"Emergency Medicine, Category 2 Investigation with Category 3 Treatment",T04UNK,Type 04 Unknown,54,309.27,16700.78,3
+VB06Z,"Emergency Medicine, Category 1 Investigation with Category 3-4 Treatment",T01A,Type 01 admitted,459,207.00,95013.00,1
+VB06Z,"Emergency Medicine, Category 1 Investigation with Category 3-4 Treatment",T01NA,Type 01 non admitted,584,202.00,117968.00,1
+VB06Z,"Emergency Medicine, Category 1 Investigation with Category 3-4 Treatment",T01UNK,Type 01 Unknown,318096,417.53,132814704.42,123
+VB06Z,"Emergency Medicine, Category 1 Investigation with Category 3-4 Treatment",T02UNK,Type 02 Unknown,2970,217.18,645037.39,16
+VB06Z,"Emergency Medicine, Category 1 Investigation with Category 3-4 Treatment",T03A,Type 03 admitted,792,138.44,109647.95,2
+VB06Z,"Emergency Medicine, Category 1 Investigation with Category 3-4 Treatment",T03NA,Type 03 non admitted,12628,125.10,1579747.59,12
+VB06Z,"Emergency Medicine, Category 1 Investigation with Category 3-4 Treatment",T03UNK,Type 03 Unknown,41849,217.00,9081024.77,56
+VB06Z,"Emergency Medicine, Category 1 Investigation with Category 3-4 Treatment",T04NA,Type 04 non admitted,716,1948.57,1395176.62,2
+VB06Z,"Emergency Medicine, Category 1 Investigation with Category 3-4 Treatment",T04UNK,Type 04 Unknown,336,203.39,68337.50,6
+VB07Z,"Emergency Medicine, Category 2 Investigation with Category 2 Treatment",T01A,Type 01 admitted,2055,275.00,565125.00,1
+VB07Z,"Emergency Medicine, Category 2 Investigation with Category 2 Treatment",T01NA,Type 01 non admitted,4385,270.00,1183950.00,1
+VB07Z,"Emergency Medicine, Category 2 Investigation with Category 2 Treatment",T01UNK,Type 01 Unknown,1638831,374.51,613760464.25,124
+VB07Z,"Emergency Medicine, Category 2 Investigation with Category 2 Treatment",T02UNK,Type 02 Unknown,46406,147.13,6827593.56,18
+VB07Z,"Emergency Medicine, Category 2 Investigation with Category 2 Treatment",T03A,Type 03 admitted,2412,187.10,451276.60,2
+VB07Z,"Emergency Medicine, Category 2 Investigation with Category 2 Treatment",T03NA,Type 03 non admitted,49452,152.61,7547116.42,12
+VB07Z,"Emergency Medicine, Category 2 Investigation with Category 2 Treatment",T03UNK,Type 03 Unknown,95247,221.81,21126783.97,53
+VB07Z,"Emergency Medicine, Category 2 Investigation with Category 2 Treatment",T04NA,Type 04 non admitted,110572,65.05,7192223.17,3
+VB07Z,"Emergency Medicine, Category 2 Investigation with Category 2 Treatment",T04UNK,Type 04 Unknown,2337,180.79,422509.80,4
+VB08Z,"Emergency Medicine, Category 2 Investigation with Category 1 Treatment",T01A,Type 01 admitted,2182,207.00,451674.00,1
+VB08Z,"Emergency Medicine, Category 2 Investigation with Category 1 Treatment",T01NA,Type 01 non admitted,13342,202.00,2695084.00,1
+VB08Z,"Emergency Medicine, Category 2 Investigation with Category 1 Treatment",T01UNK,Type 01 Unknown,3453565,300.34,1037230433.49,124
+VB08Z,"Emergency Medicine, Category 2 Investigation with Category 1 Treatment",T02UNK,Type 02 Unknown,106606,145.97,15561115.94,19
+VB08Z,"Emergency Medicine, Category 2 Investigation with Category 1 Treatment",T03A,Type 03 admitted,2582,173.27,447377.41,2
+VB08Z,"Emergency Medicine, Category 2 Investigation with Category 1 Treatment",T03NA,Type 03 non admitted,75371,141.04,10629985.00,12
+VB08Z,"Emergency Medicine, Category 2 Investigation with Category 1 Treatment",T03UNK,Type 03 Unknown,237442,191.87,45557883.21,58
+VB08Z,"Emergency Medicine, Category 2 Investigation with Category 1 Treatment",T04NA,Type 04 non admitted,2931,81.91,240074.74,2
+VB08Z,"Emergency Medicine, Category 2 Investigation with Category 1 Treatment",T04UNK,Type 04 Unknown,5763,128.06,738032.32,5
+VB09Z,"Emergency Medicine, Category 1 Investigation with Category 1-2 Treatment",T01A,Type 01 admitted,1436,126.00,180936.00,1
+VB09Z,"Emergency Medicine, Category 1 Investigation with Category 1-2 Treatment",T01NA,Type 01 non admitted,7272,124.00,901728.00,1
+VB09Z,"Emergency Medicine, Category 1 Investigation with Category 1-2 Treatment",T01UNK,Type 01 Unknown,2532520,229.77,581895150.92,124
+VB09Z,"Emergency Medicine, Category 1 Investigation with Category 1-2 Treatment",T02UNK,Type 02 Unknown,42777,177.12,7576603.74,20
+VB09Z,"Emergency Medicine, Category 1 Investigation with Category 1-2 Treatment",T03A,Type 03 admitted,8247,117.55,969472.24,2
+VB09Z,"Emergency Medicine, Category 1 Investigation with Category 1-2 Treatment",T03NA,Type 03 non admitted,352893,124.35,43880833.87,15
+VB09Z,"Emergency Medicine, Category 1 Investigation with Category 1-2 Treatment",T03UNK,Type 03 Unknown,599147,128.02,76701738.12,63
+VB09Z,"Emergency Medicine, Category 1 Investigation with Category 1-2 Treatment",T04NA,Type 04 non admitted,6396,95.55,611131.26,2
+VB09Z,"Emergency Medicine, Category 1 Investigation with Category 1-2 Treatment",T04UNK,Type 04 Unknown,34869,82.61,2880634.83,6
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T01A,Type 01 admitted,184,46.00,8464.00,1
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T01NA,Type 01 non admitted,5488,45.00,246960.00,1
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T01UNK,Type 01 Unknown,1523387,157.19,239464098.11,124
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T02A,Type 02 admitted,5358,306.76,1643620.08,1
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T02UNK,Type 02 Unknown,89261,145.89,13022313.43,22
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T03A,Type 03 admitted,4149,114.75,476078.05,2
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T03NA,Type 03 non admitted,322888,98.46,31792286.14,14
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T03UNK,Type 03 Unknown,602008,111.50,67122995.30,63
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T04NA,Type 04 non admitted,75876,90.39,6858701.06,3
+VB11Z,"Emergency Medicine, No Investigation with No Significant Treatment",T04UNK,Type 04 Unknown,126207,63.01,7952382.04,7

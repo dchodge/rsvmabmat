@@ -1,0 +1,608 @@
+# Load impact
+
+```{r}
+
+S <- 100
+library(ggdist)
+library(tidyverse)
+library(patchwork)
+library(readxl)
+
+```
+
+# find best month of administration of mabs and mat 
+```{r}
+
+start_month_names <- c("jul", "aug", "sep", "oct", "nov", "dec", "jan", "feb", "mar", "apr", "may", "jun")
+
+df_month_check_mabs <- start_month_names %>% map_df(
+    function(x) {
+        data_load <- load(here::here("outputs", "scenarios", "mab_s_unbound", paste0("RSV_mab_", x, ".RData")))
+        RSV_mab_mon <- get(data_load)
+        data.frame(
+            sample = 1:S,
+            start_month = x,
+            qalyloss = RSV_mab_mon@outcomes$qaly$total %>% unique
+        )
+    }
+)
+
+df_month_check_mabs %>% group_by(start_month) %>% summarise(qalyloss = mean(qalyloss)) %>% 
+    filter(qalyloss == min(qalyloss)) # September best month
+# July best times to give vccination for 
+
+df_month_check_mats <- start_month_names %>% map_df(
+    function(x) {
+        data_load <- load(here::here("outputs", "scenarios", "mat_s_unbound", paste0("RSV_mat_", x, ".RData")))
+        RSV_mat_mon <- get(data_load)
+        data.frame(
+            sample = 1:S,
+            start_month = x,
+            qalyloss = RSV_mat_mon@outcomes$qaly$total %>% unique
+        )
+    }
+)
+
+df_month_check_mats %>% group_by(start_month) %>% summarise(qalyloss = mean(qalyloss)) %>% 
+    filter(qalyloss == min(qalyloss)) # September best month
+
+p1 <- df_month_check_mabs %>% 
+    mutate(start_month = factor(start_month, levels = start_month_names)) %>%
+    ggplot() + 
+        stat_summary(aes(start_month, qalyloss), size = 2) + labs(title = "Seasonal Niservimab administration")
+
+p2 <- df_month_check_mats %>% 
+    mutate(start_month = factor(start_month, levels = start_month_names)) %>%
+    ggplot() + 
+        stat_summary(aes(start_month, qalyloss), size = 2)  + labs(title = "Seasonal maternal administration")
+
+p1 / p2 & theme_bw() & labs(x = "Month to start administration", y = "Adjusted QALY loss over 10 years")
+ggsave(here::here("outputs", "dhsc", "fig_peak.pdf"))
+
+```
+
+
+
+
+## MATERNAL VACCINATION IMPACT
+
+```{r}
+
+get_averted_df <- function(base, interventions) {
+    recode_age <- c("1" = "<1 month", "2" = "1 month", "3" = "2 month", "4" = "3 month", "5" = "4 month",
+    "6" = "5 month", "7" = "6 month", "8" = "7 month", "9" = "8 month", "10" = "9 month", "11" = "10 month",
+    "12" = "11 month", "13" = "1 year", "14" = "2 year", "15" = "3 years", "16" = "4 years", 
+    "17" = "5+ years", "18" = "5+ years", "19" = "5+ years", "20" = "5+ years", "21" = "5+ years",
+    "22" = "5+ years", "23" = "5+ years", "24" = "5+ years", "25" = "5+ years")
+    relabel_outcomes <- c("symptomatic" = "Symptomatic cases", "gp" = "GP consultations", 
+        "hosp" = "Hospital cases", "icu" = "ICU admissions", "a_e" = "A+E visits", "death" = "Deaths")
+    RSV_impact <- interventions %>%
+        left_join(base %>% rename(case_total_base = cases_total), by = c("s", "outcome", "age_group")) %>%
+        mutate(total_case_averted = case_total_base - cases_total) %>% mutate(prop_cases_averted = (case_total_base - cases_total) / case_total_base)  %>% mutate(age_group = recode(age_group, !!!recode_age)) %>%
+        mutate(age_group = factor(age_group, levels = unique(recode_age))) %>%
+        mutate(outcome = recode(outcome, !!!relabel_outcomes)) %>%
+        mutate(outcome = factor(outcome, levels = unique(relabel_outcomes)))
+    RSV_impact
+}
+
+summarise_outcomes <- function(x) {
+    x@outcomes$outcomes %>% group_by(s, outcome, age_group) %>% summarise(cases_total = sum(cases) )
+}
+
+
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mat_pal.RData")) # RSV_mat_vhr
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mat_vhr.RData")) # RSV_mat_vhr
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mat_s.RData")) # RSV_mat_s
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mat_yr.RData")) # RSV_mat_yr
+
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_pal.RData")) # RSV_mab_vhr
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_vhr.RData")) # RSV_mab_vhr
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_s.RData"))  # RSV_mab_s
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_s_cu.RData"))  # RSV_mab_s
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_yr.RData"))  # RSV_mab_s
+
+RSV_mat_pal_sum <- RSV_mat_pal %>% summarise_outcomes
+RSV_mat_vhr_sum <- RSV_mat_vhr %>% summarise_outcomes
+RSV_mat_s_sum <- RSV_mat_s %>% summarise_outcomes
+RSV_mat_yr_sum <- RSV_mat_yr %>% summarise_outcomes
+
+RSV_mab_pal_sum <- RSV_mab_pal %>% summarise_outcomes
+RSV_mab_vhr_sum <- RSV_mab_vhr %>% summarise_outcomes
+RSV_mab_s_sum <- RSV_mab_s %>% summarise_outcomes
+RSV_mab_s_cu_sum <- RSV_mab_s_cu %>% summarise_outcomes
+RSV_mab_yr_sum <- RSV_mab_yr %>% summarise_outcomes
+
+RSV_mat_compare <- bind_rows(
+    get_averted_df(RSV_mat_pal_sum, RSV_mat_s_sum) %>% mutate(intervention = "Seasonal maternal"),
+    get_averted_df(RSV_mat_pal_sum, RSV_mat_yr_sum) %>% mutate(intervention = "Year-round maternal")
+)
+
+RSV_mab_compare <- bind_rows(
+    get_averted_df(RSV_mat_pal_sum, RSV_mab_s_sum) %>% mutate(intervention = "Seasonal la-mAB"),
+    get_averted_df(RSV_mat_pal_sum, RSV_mab_s_cu_sum) %>% mutate(intervention = "Seasonal la-mAB with\n annual catch-up"),
+    get_averted_df(RSV_mat_pal_sum, RSV_mab_yr_sum) %>% mutate(intervention = "Year-round la-mAB")
+)
+
+
+library(ggdist)
+
+p1 <- RSV_mat_compare %>%
+    ggplot() + 
+        stat_lineribbon(aes(x = age_group, y = prop_cases_averted, fill = intervention), alpha = 0.5) + 
+        facet_grid(rows = vars(outcome), cols = vars(intervention)) + theme_bw() + 
+        scale_fill_manual(values = c("#0d4fb2", "#91BAd6"))  + 
+        labs(x = "Age group", y = "Proportional reduction in cases per age group") + 
+        geom_hline(yintercept = 0, color = "gray30") +
+        guides(fill = "none") + 
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 16)) 
+
+p2 <- RSV_mab_compare %>%
+    ggplot() + 
+        stat_lineribbon(aes(x = age_group, y = prop_cases_averted, fill = intervention), alpha = 0.5) + 
+        facet_grid(rows = vars(outcome), cols = vars(intervention)) + theme_bw() + 
+        labs(x = "Age group", y = "Proportional reduction in cases per age group") + 
+        geom_hline(yintercept = 0, color = "gray30") + 
+        scale_fill_manual(values = c("#c07002", "#fcae44", "#f0de16"))  + 
+        guides(fill = "none") + 
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 16)) 
+require(patchwork)
+p1 / p2
+ggsave(here::here("figs", "burden", "impact_rsv.png"), width = 12, height = 20, units = "in", dpi = 300)
+
+
+RSV_mat_compare %>% bind_rows(RSV_mab_compare) %>%
+     mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
+         "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" ))) %>%
+    ggplot() + 
+        stat_lineribbon(aes(x = age_group, y = prop_cases_averted, fill = intervention), alpha = 0.5) + 
+        facet_grid(rows = vars(outcome), cols = vars(intervention)) + theme_bw() + 
+        scale_fill_manual(values = c("#0d4fb2", "#91BAd6", "#c07002", "#fcae44", "#f0de16"))  + 
+        labs(x = "Age group", y = "Proportional reduction in cases per age group") + 
+        geom_hline(yintercept = 0, color = "gray30") +
+        guides(fill = "none") + 
+        theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 13), text = element_text(size = 16)) 
+ggsave(here::here("figs", "burden", "impact_rsv_full.png"), width = 15, height = 12, units = "in", dpi = 300)
+
+
+```
+
+
+```{r}
+
+get_mean_95ci <- function(value) {
+    bounds <- quantile(value, c(0.025, 0.975)) %>% as.numeric
+    data.frame(
+        "mean" = mean(value),
+        "lb" = bounds[1],
+        "ub" = bounds[2]
+    )
+}
+
+RSV_mat_compare %>% group_by(outcome, intervention, s) %>% 
+    filter(age_group %in% c("<1 month", "1 month", "2 month", "3 month", "4 month", "5 month")) %>% 
+    summarise(prop_cases_averted = mean(prop_cases_averted)) %>% 
+    ungroup %>% 
+    summarise(get_mean_95ci(prop_cases_averted), .by = c(outcome, intervention) )
+
+
+RSV_mat_compare %>% group_by(outcome, intervention, s) %>% 
+    filter(age_group %in% c("6 month", "7 month", "8 month", "9 month", "10 month", "11 month")) %>% 
+    summarise(prop_cases_averted = mean(prop_cases_averted)) %>% 
+    ungroup %>% 
+    summarise(get_mean_95ci(prop_cases_averted), .by = c(outcome, intervention) )
+
+RSV_mat_compare %>% group_by(outcome, intervention, s) %>% 
+    filter(age_group %in% c("1 year")) %>% 
+    summarise(prop_cases_averted = mean(prop_cases_averted)) %>% 
+    ungroup %>% 
+    summarise(get_mean_95ci(prop_cases_averted), .by = c(outcome, intervention) )
+
+RSV_mat_compare %>% group_by(outcome, intervention, s) %>% 
+    filter(age_group %in% c("5+ years")) %>% 
+    summarise(prop_cases_averted = mean(prop_cases_averted)) %>% 
+    ungroup %>% 
+    summarise(get_mean_95ci(prop_cases_averted), .by = c(outcome, intervention) )
+
+RSV_mab_compare %>% group_by(outcome, intervention, s) %>% 
+    filter(age_group %in% c("<1 month", "1 month", "2 month", "3 month", "4 month", "5 month")) %>% 
+    summarise(prop_cases_averted = mean(prop_cases_averted)) %>% 
+    ungroup %>% 
+    summarise(get_mean_95ci(prop_cases_averted), .by = c(outcome, intervention) )
+
+RSV_mab_compare %>% group_by(outcome, intervention, s) %>% 
+    filter(age_group %in% c("6 month", "7 month", "8 month", "9 month", "10 month", "11 month")) %>% 
+    summarise(prop_cases_averted = mean(prop_cases_averted)) %>% 
+    ungroup %>% 
+    summarise(get_mean_95ci(prop_cases_averted), .by = c(outcome, intervention) )
+
+RSV_mab_compare %>% group_by(outcome, intervention, s) %>% 
+    filter(age_group %in% c("1 year")) %>% 
+    summarise(prop_cases_averted = mean(prop_cases_averted)) %>% 
+    ungroup %>% 
+    summarise(get_mean_95ci(prop_cases_averted), .by = c(outcome, intervention) )
+
+RSV_mab_compare %>% group_by(outcome, intervention, s) %>% 
+    filter(age_group %in% c("5+ years")) %>% 
+    summarise(prop_cases_averted = mean(prop_cases_averted)) %>% 
+    ungroup %>% 
+    summarise(get_mean_95ci(prop_cases_averted), .by = c(outcome, intervention) )
+
+
+```
+
+# Useful table on cases averted
+
+```{r}
+
+
+impact_mats <- RSV_mat_compare %>% group_by(outcome, intervention, s) %>% summarise(total_case_averted = sum(total_case_averted)) %>%
+    ungroup %>% 
+    summarise(get_mean_95ci(total_case_averted), .by = c(outcome, intervention) ) %>% arrange(intervention) %>% 
+    mutate(for_table = paste0(round(mean, 0), " (", round(lb, 0), "-", round(ub, 0), ")"))
+
+
+left_join(
+    impact_mats %>% filter(outcome == "Symptomatic cases"),
+    impact_mats %>% filter(outcome != "Symptomatic cases") %>% summarise(mean = sum(mean), lb = sum(lb), ub = sum(ub), .by = c("intervention")) %>% 
+    rename(mean_base = mean, lb_base = lb, ub_base = ub)
+) %>% mutate(mean = mean - mean_base, lb = lb - lb_base, ub = ub - ub_base) %>%
+    mutate(table = paste0(round(mean, 0), " (", round(lb, 0), "-", round(ub, 0), ")"))
+
+
+
+impact_mabs <- RSV_mab_compare %>% group_by(outcome, intervention, s) %>% summarise(total_case_averted = sum(total_case_averted)) %>%
+    ungroup %>% 
+    summarise(get_mean_95ci(total_case_averted), .by = c(outcome, intervention) ) %>% arrange(intervention) %>% 
+    mutate(for_table = paste0(round(mean, 0), " (", round(lb, 0), "-", round(ub, 0), ")"))
+
+left_join(
+    impact_mabs %>% filter(outcome == "Symptomatic cases"),
+    impact_mabs %>% filter(outcome != "Symptomatic cases") %>% summarise(mean = sum(mean), lb = sum(lb), ub = sum(ub), .by = c("intervention")) %>% 
+    rename(mean_base = mean, lb_base = lb, ub_base = ub)
+) %>% mutate(mean = mean - mean_base, lb = lb - lb_base, ub = ub - ub_base) %>%
+    mutate(table = paste0(round(mean, 0), " (", round(lb, 0), "-", round(ub, 0), ")"))
+
+
+```
+
+# Per dose efficiency
+
+```{r}
+
+# Full plot across all info!
+source("R/cea.R")
+
+joiner_doses_mat <- bind_rows(
+        get_doses(RSV_mat_s, "Seasonal maternal", "mat", 1, FALSE),
+        get_doses(RSV_mat_yr, "Year-round maternal", "mat", 1, FALSE)
+) %>% rename(intervention = scenario)
+
+RSV_mat_compare_eff <- RSV_mat_compare %>% left_join(joiner_doses_mat) %>% mutate(total_cases_averted_dose = total_case_averted / doses_mat) 
+p1 <- RSV_mat_compare_eff %>% ggplot() + 
+        stat_lineribbon(aes(x = age_group, y = total_cases_averted_dose, fill = intervention), alpha = 0.5) + 
+        facet_grid(rows = vars(outcome), cols = vars(intervention), scales = "free_y") + theme_bw() + 
+        scale_fill_manual(values = c("#0d4fb2", "#91BAd6"))  + 
+        labs(x = "Age group", y = "Cases averted per dose") + 
+        geom_hline(yintercept = 0, color = "gray30") + 
+        guides(fill = "none") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 16))
+
+
+joiner_doses_mab <- bind_rows(
+        get_doses(RSV_mab_s, "Seasonal la-mAB", "mAB", 1, FALSE),
+        get_doses(RSV_mab_s_cu, "Seasonal la-mAB with\n annual catch-up", "mAB", 1, FALSE),
+        get_doses(RSV_mab_yr, "Year-round la-mAB", "mAB", 1, FALSE)
+) %>% rename(intervention = scenario)
+
+
+RSV_mab_compare_eff <- RSV_mab_compare %>% left_join(joiner_doses_mab) %>% mutate(total_cases_averted_dose = total_case_averted / doses_mab) 
+
+RSV_mat_compare_eff %>% ungroup %>% select(intervention, doses_vhr, doses_mab, doses_mat) %>% unique
+
+RSV_mab_compare_eff %>% ungroup %>% select(intervention, doses_vhr, doses_mab, doses_mat) %>% unique
+
+p2 <- RSV_mab_compare_eff %>%
+    ggplot() + 
+        stat_lineribbon(aes(x = age_group, y = total_cases_averted_dose, fill = intervention), alpha = 0.5) + 
+        facet_grid(rows = vars(outcome), cols = vars(intervention), scales = "free_y") + theme_bw() + 
+        labs(x = "Age group", y = "Cases averted per dose") + 
+        scale_fill_manual(values = c("#c07002", "#fcae44", "#f0de16"))  + 
+        geom_hline(yintercept = 0, color = "gray30") + 
+        guides(fill = "none") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 16))
+
+p1 / p2
+ggsave(here::here("figs", "burden", "impact_efficiency_rsv.png"), width = 15, height = 20, units = "in", dpi = 300)
+
+RSV_mat_compare_eff_sum <- RSV_mat_compare_eff %>% ungroup %>% summarise(total_case_averted = sum(total_case_averted), doses = mean(doses_mat), .by = c("s", "outcome", "intervention"))
+RSV_mab_compare_eff_sum <- RSV_mab_compare_eff %>% ungroup %>% summarise(total_case_averted = sum(total_case_averted), doses = mean(doses_mab), .by = c("s", "outcome", "intervention"))
+
+p_eff <- bind_rows(
+    RSV_mat_compare_eff_sum,
+    RSV_mab_compare_eff_sum
+) %>% 
+    mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
+         "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" ))) %>%
+         mutate(vaccine_avert = 1 / (total_case_averted / doses)) %>%
+    ggplot() + 
+        stat_pointinterval(aes(x = intervention, y = vaccine_avert, fill = intervention), shape = 21, point_size = 5, position = position_dodge(0.5)) + 
+        labs(y = "Number needed to vaccinate", x = "Intervention programme", fill = "Intervention") +
+        scale_fill_manual(values = c("#0d4fb2", "#91BAd6", "#c07002", "#fcae44", "#f0de16"))  + 
+        facet_grid(rows = vars(outcome), scales = "free_y") + guides(fill = "none") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1), text = element_text(size = 18)) + theme_bw()
+ggsave(here::here("figs", "burden", "impact_efficiency_rsv_sum.png"), width = 10, height = 10, units = "in", dpi = 300)
+
+
+```
+
+```{r}
+
+
+RSV_mab_compare_eff %>%  ungroup %>%
+    summarise(
+        total_case_averted = sum(total_case_averted), 
+        doses = mean(doses_mab), .by = c("s", "outcome", "intervention")) %>%
+    mutate(vaccine_avert = 1 / (total_case_averted / doses)) %>%
+    ungroup %>% 
+    summarise(get_mean_95ci(vaccine_avert), .by = c(outcome, intervention) )
+
+
+RSV_mat_compare_eff %>%  ungroup %>%
+    summarise(
+        total_case_averted = sum(total_case_averted), 
+        doses = mean(doses_mat), .by = c("s", "outcome", "intervention")) %>%
+    mutate(vaccine_avert = 1 / (total_case_averted / doses)) %>%
+    ungroup %>% 
+    summarise(get_mean_95ci(vaccine_avert), .by = c(outcome, intervention) )
+
+
+```
+
+## QALY and cost comparisons
+
+```{r}
+
+summarise_qalys <- function(x) {
+    x@outcomes$qaly %>% ungroup %>% select(s, total) %>% unique
+}
+
+get_qaly_averted <- function(base, intervention, name_string) {
+    intervention %>%
+        left_join(base %>% rename(total_base = total), by = join_by(s)) %>%
+        mutate(qaly_averted = total_base - total) %>%  mutate(intervention = name_string)
+
+}
+
+RSV_mat_pal_sum <- RSV_mat_pal %>% summarise_qalys
+RSV_mat_s_sum <- RSV_mat_s %>% summarise_qalys
+RSV_mat_yr_sum <- RSV_mat_yr %>% summarise_qalys
+
+RSV_mab_pal_sum <- RSV_mab_pal %>% summarise_qalys
+RSV_mab_s_sum <- RSV_mab_s %>% summarise_qalys
+RSV_mab_s_cu_sum <- RSV_mab_s_cu %>% summarise_qalys
+RSV_mab_yr_sum <- RSV_mab_yr %>% summarise_qalys
+
+require(scales)
+
+plot_qalys <- bind_rows(
+    get_qaly_averted(RSV_mat_pal_sum, RSV_mat_s_sum, "Seasonal maternal"),
+    get_qaly_averted(RSV_mat_pal_sum, RSV_mat_yr_sum, "Year-round maternal"),
+    get_qaly_averted(RSV_mat_pal_sum, RSV_mab_s_sum, "Seasonal la-mAB"),
+    get_qaly_averted(RSV_mat_pal_sum, RSV_mab_s_cu_sum, "Seasonal la-mAB with\n annual catch-up"),
+    get_qaly_averted(RSV_mat_pal_sum, RSV_mab_yr_sum, "Year-round la-mAB")
+) %>% 
+    mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
+         "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" )))
+
+plot_qalys %>% summarise(get_mean_95ci(qaly_averted) / 10, .by = c("intervention")) %>%
+    mutate(table = paste0(round(mean, 0), " (", round(lb, 0), "-", round(ub, 0), ")"))
+
+p1 <- plot_qalys %>% 
+    mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
+         "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" ))) %>%
+    ggplot() + 
+        geom_boxplot(aes(x = intervention, qaly_averted, fill = intervention)) + 
+        geom_jitter(aes(x = intervention, qaly_averted, fill = intervention), height = 0, width = 0.3, shape = 21, alpha = 0.7) + 
+        scale_fill_manual(values = c("#0d4fb2", "#91BAd6", "#c07002", "#fcae44", "#f0de16")) +
+        scale_y_continuous(labels = comma) + guides(fill = "none") + 
+        labs(y = "QALY gained over 10 years\n (discount rate 3.5%)", x = "Intervention",
+            fill = "Intervention") + 
+        theme_bw() + theme(text = element_text(size = 11))
+
+
+summarise_cost <- function(x) {
+    x@outcomes$costs %>% ungroup %>% select(s, total) %>% unique
+}
+
+get_cost_averted <- function(base, intervention, name_string) {
+    intervention %>%
+        left_join(base %>% rename(total_base = total), by = join_by(s)) %>%
+        mutate(cost_averted = total_base - total) %>%  mutate(intervention = name_string)
+
+}
+
+
+RSV_mat_pal_sum <- RSV_mat_pal %>% summarise_cost
+RSV_mat_s_sum <- RSV_mat_s %>% summarise_cost
+RSV_mat_yr_sum <- RSV_mat_yr %>% summarise_cost
+
+RSV_mab_pal_sum <- RSV_mab_pal %>% summarise_cost
+RSV_mab_s_sum <- RSV_mab_s %>% summarise_cost
+RSV_mab_s_cu_sum <- RSV_mab_s_cu %>% summarise_cost
+RSV_mab_yr_sum <- RSV_mab_yr %>% summarise_cost
+
+
+plot_costs <- bind_rows(
+    get_cost_averted(RSV_mat_pal_sum, RSV_mat_s_sum, "Seasonal maternal"),
+    get_cost_averted(RSV_mat_pal_sum, RSV_mat_yr_sum, "Year-round maternal"),
+    get_cost_averted(RSV_mat_pal_sum, RSV_mab_s_sum, "Seasonal la-mAB"),
+    get_cost_averted(RSV_mat_pal_sum, RSV_mab_s_cu_sum, "Seasonal la-mAB with\n annual catch-up"),
+    get_cost_averted(RSV_mat_pal_sum, RSV_mab_yr_sum, "Year-round la-mAB")
+) %>% 
+    mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
+         "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" ))) 
+
+plot_costs %>% summarise(get_mean_95ci(cost_averted) / 10, .by = c("intervention")) %>%
+    mutate(table = paste0(round(mean / 1000, 0), " (", round(lb / 1000, 0), "-", round(ub / 1000, 0), ")"))
+
+
+p2 <-  plot_costs %>% ggplot() + 
+        geom_boxplot(aes(x = intervention, cost_averted, fill = intervention)) + 
+        geom_jitter(aes(x = intervention, cost_averted, fill = intervention), height = 0, width = 0.3, shape = 21, alpha = 0.7) + 
+        scale_fill_manual(values = c("#0d4fb2", "#91BAd6", "#c07002", "#fcae44", "#f0de16")) +
+        scale_y_continuous(labels = comma) +  guides(fill = "none") + 
+        labs(y = "Healthcare cost saved over 10 years\n (discount rate 3.5%)", x = "Intervention programme",
+            fill = "Intervention") + theme_bw() + theme(text = element_text(size = 11))
+
+ 
+p1 / p2 + plot_layout(guides = "collect")
+
+p_eff + p_cost + plot_annotation(tag_levels = "A")
+ggsave(here::here("figs", "burden", "qalys_costs_alt.pdf"), width = 16, height = 12)
+
+```
+
+
+
+
+
+### Supplementary: Get burden from QALY and cost
+
+
+```{r}
+
+relabel_outcomes <- c("symptomatic" = "Symptomatic cases", "gp" = "GP consultations", 
+    "hosp" = "Hospital cases", "icu" = "ICU admissions", "a_e" = "A+E visits", "death" = "Deaths")
+
+RSV_mat_vhr_qaly <-  RSV_mat_pal@outcomes$qaly %>% filter(qaly > 0) %>% ungroup %>% summarise(qaly = sum(qaly), .by = c("outcome", "s", "total"))
+RSV_mat_s_qaly <-  RSV_mat_s@outcomes$qaly %>% filter(qaly > 0)  %>% ungroup %>% summarise(qaly = sum(qaly), .by = c("outcome", "s", "total"))
+RSV_mat_yr_qaly <-  RSV_mat_yr@outcomes$qaly %>% filter(qaly > 0)  %>% ungroup %>% summarise(qaly = sum(qaly), .by = c("outcome", "s", "total"))
+
+RSV_mat_s_all_qaly_prop <- RSV_mat_s_qaly %>% left_join(RSV_mat_vhr_qaly %>% rename(qaly_base = qaly, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (qaly_base - qaly) / (qaly_base), qaly_abs = (qaly_base - qaly))  %>% group_by(s) %>% mutate(qaly_abs_tot = sum(qaly_abs), qaly_avert_prop = qaly_abs / qaly_abs_tot) %>% 
+    group_by(outcome) %>% summarise(qaly_avert_prop = mean(qaly_avert_prop))
+
+RSV_mat_yr_all_qaly_prop <- RSV_mat_yr_qaly %>% left_join(RSV_mat_vhr_qaly %>% rename(qaly_base = qaly, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (qaly_base - qaly) / (qaly_base), qaly_abs = (qaly_base - qaly))  %>% group_by(s) %>% mutate(qaly_abs_tot = sum(qaly_abs), qaly_avert_prop = qaly_abs / qaly_abs_tot) %>% 
+    group_by(outcome) %>% summarise(qaly_avert_prop = mean(qaly_avert_prop))
+
+RSV_mat_vhr_cost <-  RSV_mat_vhr@outcomes$cost %>% filter(cost > 0) %>% ungroup %>% summarise(cost = sum(cost), .by = c("outcome", "s", "total"))
+RSV_mat_s_cost <-  RSV_mat_s@outcomes$cost %>% filter(cost > 0) %>% ungroup %>% summarise(cost = sum(cost), .by = c("outcome", "s", "total"))
+RSV_mat_yr_cost <-  RSV_mat_yr@outcomes$cost %>% filter(cost > 0) %>% ungroup %>% summarise(cost = sum(cost), .by = c("outcome", "s", "total"))
+
+RSV_mat_s_all_cost_prop <- RSV_mat_s_cost %>% left_join(RSV_mat_vhr_cost %>% rename(cost_base = cost, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (cost_base - cost) / (cost_base ), cost_abs = (cost_base - cost)) %>% group_by(s) %>% mutate(cost_abs_tot = sum(cost_abs), cost_avert_prop = cost_abs / cost_abs_tot) %>% 
+    group_by(outcome) %>% summarise(cost_avert_prop = mean(cost_avert_prop))
+
+RSV_mat_yr_all_cost_prop <- RSV_mat_yr_cost %>% left_join(RSV_mat_vhr_cost %>% rename(cost_base = cost, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (cost_base - cost) / (cost_base ), cost_abs = (cost_base - cost)) %>% group_by(s) %>% mutate(cost_abs_tot = sum(cost_abs), cost_avert_prop = cost_abs / cost_abs_tot) %>% 
+    group_by(outcome) %>% summarise(cost_avert_prop = mean(cost_avert_prop))
+
+
+df_outcomes_prop <- bind_rows(
+    RSV_mat_s_all_qaly_prop %>% mutate(metric = "QALY gain") %>% rename(avert_prop = qaly_avert_prop) %>% mutate(intervention = "Seasonal maternal"),
+    RSV_mat_s_all_cost_prop %>% mutate(metric = "Cost savings") %>% rename(avert_prop = cost_avert_prop) %>% mutate(intervention = "Seasonal maternal"),
+    RSV_mat_yr_all_qaly_prop %>% mutate(metric = "QALY gain") %>% rename(avert_prop = qaly_avert_prop) %>% mutate(intervention = "Year-round maternal"),
+    RSV_mat_yr_all_cost_prop %>% mutate(metric = "Cost savings") %>% rename(avert_prop = cost_avert_prop) %>% mutate(intervention = "Year-round maternal")
+)
+
+p1 <- df_outcomes_prop %>% 
+    mutate(outcome = recode(outcome, !!!relabel_outcomes)) %>%
+    mutate(outcome = factor(outcome, levels = unique(relabel_outcomes))) %>%
+    ggplot() + geom_col(aes(x = avert_prop, y = metric, fill = outcome), width = 0.7) + 
+    theme_bw() + labs(x = "Proportion attributable to each health outcome", y = "Metric", fill = "Helath outcome") +
+    theme(text = element_text(size = 18)) + 
+    facet_wrap(vars(intervention))
+ggsave(here::here("figs", "burden", "cost_qaly_att_mat.png"), width = 15, height = 12, units = "in", dpi = 300)
+
+
+## mabs
+
+RSV_mab_vhr_qaly <-  RSV_mab_pal@outcomes$qaly %>% filter(qaly > 0) %>% ungroup %>% summarise(qaly = sum(qaly), .by = c("outcome", "s", "total"))
+RSV_mab_s_qaly <-  RSV_mab_s@outcomes$qaly %>% filter(qaly > 0)  %>% ungroup %>% summarise(qaly = sum(qaly), .by = c("outcome", "s", "total"))
+RSV_mab_yr_qaly <-  RSV_mab_yr@outcomes$qaly %>% filter(qaly > 0)  %>% ungroup %>% summarise(qaly = sum(qaly), .by = c("outcome", "s", "total"))
+
+RSV_mab_s_all_qaly_prop <- RSV_mab_s_qaly %>% left_join(RSV_mab_vhr_qaly %>% rename(qaly_base = qaly, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (qaly_base - qaly) / (qaly_base), qaly_abs = (qaly_base - qaly))  %>% group_by(s) %>% mutate(qaly_abs_tot = sum(qaly_abs), qaly_avert_prop = qaly_abs / qaly_abs_tot) %>% 
+    group_by(outcome) %>% summarise(qaly_avert_prop = mean(qaly_avert_prop))
+
+RSV_mab_yr_all_qaly_prop <- RSV_mab_yr_qaly %>% left_join(RSV_mab_vhr_qaly %>% rename(qaly_base = qaly, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (qaly_base - qaly) / (qaly_base), qaly_abs = (qaly_base - qaly))  %>% group_by(s) %>% mutate(qaly_abs_tot = sum(qaly_abs), qaly_avert_prop = qaly_abs / qaly_abs_tot) %>% 
+    group_by(outcome) %>% summarise(qaly_avert_prop = mean(qaly_avert_prop))
+
+RSV_mab_vhr_cost <-  RSV_mab_vhr@outcomes$cost %>% filter(cost > 0) %>% ungroup %>% summarise(cost = sum(cost), .by = c("outcome", "s", "total"))
+RSV_mab_s_cost <-  RSV_mab_s@outcomes$cost %>% filter(cost > 0) %>% ungroup %>% summarise(cost = sum(cost), .by = c("outcome", "s", "total"))
+RSV_mab_yr_cost <-  RSV_mab_yr@outcomes$cost %>% filter(cost > 0) %>% ungroup %>% summarise(cost = sum(cost), .by = c("outcome", "s", "total"))
+
+RSV_mab_s_all_cost_prop <- RSV_mab_s_cost %>% left_join(RSV_mab_vhr_cost %>% rename(cost_base = cost, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (cost_base - cost) / (cost_base ), cost_abs = (cost_base - cost)) %>% group_by(s) %>% mutate(cost_abs_tot = sum(cost_abs), cost_avert_prop = cost_abs / cost_abs_tot) %>% 
+    group_by(outcome) %>% summarise(cost_avert_prop = mean(cost_avert_prop))
+
+RSV_mab_yr_all_cost_prop <- RSV_mab_yr_cost %>% left_join(RSV_mab_vhr_cost %>% rename(cost_base = cost, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (cost_base - cost) / (cost_base ), cost_abs = (cost_base - cost)) %>% group_by(s) %>% mutate(cost_abs_tot = sum(cost_abs), cost_avert_prop = cost_abs / cost_abs_tot) %>% 
+    group_by(outcome) %>% summarise(cost_avert_prop = mean(cost_avert_prop))
+
+
+df_outcomes_prop <- bind_rows(
+    RSV_mab_s_all_qaly_prop %>% mutate(metric = "QALY gain") %>% rename(avert_prop = qaly_avert_prop) %>% mutate(intervention = "Seasonal la-mab"),
+    RSV_mab_s_all_cost_prop %>% mutate(metric = "Cost savings") %>% rename(avert_prop = cost_avert_prop) %>% mutate(intervention = "Seasonal la-mab"),
+    RSV_mab_yr_all_qaly_prop %>% mutate(metric = "QALY gain") %>% rename(avert_prop = qaly_avert_prop) %>% mutate(intervention = "Year-round la-mab"),
+    RSV_mab_yr_all_cost_prop %>% mutate(metric = "Cost savings") %>% rename(avert_prop = cost_avert_prop) %>% mutate(intervention = "Year-round la-mab")
+)
+
+p2 <- df_outcomes_prop %>% 
+    mutate(outcome = recode(outcome, !!!relabel_outcomes)) %>%
+    mutate(outcome = factor(outcome, levels = unique(relabel_outcomes))) %>%
+    ggplot() + geom_col(aes(x = avert_prop, y = metric, fill = outcome), width = 0.7) + 
+    theme_bw() + labs(x = "Proportion attributable to each health outcome", y = "Metric", fill = "Helath outcome") +
+    theme(text = element_text(size = 18)) + 
+    facet_wrap(vars(intervention))
+ggsave(here::here("figs", "burden", "cost_qaly_att_mab.png"), width = 15, height = 12, units = "in", dpi = 300)
+
+p1 / p2 + plot_layout(guides = "collect")
+
+#m LAV
+
+RSV_lav_vhr_qaly <-  RSV_lav_pal@outcomes$qaly %>% filter(qaly > 0) %>% ungroup %>% summarise(qaly = sum(qaly), .by = c("outcome", "s", "total"))
+RSV_lav_65_qaly <-  RSV_lav_65@outcomes$qaly %>% filter(qaly > 0)  %>% ungroup %>% summarise(qaly = sum(qaly), .by = c("outcome", "s", "total"))
+RSV_lav_75_qaly <-  RSV_lav_75@outcomes$qaly %>% filter(qaly > 0)  %>% ungroup %>% summarise(qaly = sum(qaly), .by = c("outcome", "s", "total"))
+
+RSV_lav_65_all_qaly_prop <- RSV_lav_65_qaly %>% left_join(RSV_lav_vhr_qaly %>% rename(qaly_base = qaly, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (qaly_base - qaly) / (qaly_base), qaly_abs = (qaly_base - qaly))  %>% group_by(s) %>% mutate(qaly_abs_tot = sum(qaly_abs), qaly_avert_prop = qaly_abs / qaly_abs_tot) %>% 
+    group_by(outcome) %>% summarise(qaly_avert_prop = mean(qaly_avert_prop))
+
+RSV_lav_75_all_qaly_prop <- RSV_lav_75_qaly %>% left_join(RSV_lav_vhr_qaly %>% rename(qaly_base = qaly, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (qaly_base - qaly) / (qaly_base), qaly_abs = (qaly_base - qaly))  %>% group_by(s) %>% mutate(qaly_abs_tot = sum(qaly_abs), qaly_avert_prop = qaly_abs / qaly_abs_tot) %>% 
+    group_by(outcome) %>% summarise(qaly_avert_prop = mean(qaly_avert_prop))
+
+RSV_lav_vhr_cost <-  RSV_lav_pal@outcomes$cost %>% filter(cost > 0) %>% ungroup %>% summarise(cost = sum(cost), .by = c("outcome", "s", "total"))
+RSV_lav_65_cost <-  RSV_lav_65@outcomes$cost %>% filter(cost > 0) %>% ungroup %>% summarise(cost = sum(cost), .by = c("outcome", "s", "total"))
+RSV_lav_75_cost <-  RSV_lav_75@outcomes$cost %>% filter(cost > 0) %>% ungroup %>% summarise(cost = sum(cost), .by = c("outcome", "s", "total"))
+
+RSV_lav_65_all_cost_prop <- RSV_lav_65_cost %>% left_join(RSV_lav_vhr_cost %>% rename(cost_base = cost, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (cost_base - cost) / (cost_base ), cost_abs = (cost_base - cost)) %>% group_by(s) %>% mutate(cost_abs_tot = sum(cost_abs), cost_avert_prop = cost_abs / cost_abs_tot) %>% 
+    group_by(outcome) %>% summarise(cost_avert_prop = mean(cost_avert_prop))
+
+RSV_lav_75_all_cost_prop <- RSV_lav_75_cost %>% left_join(RSV_lav_vhr_cost %>% rename(cost_base = cost, total_base = total), by = c("s", "outcome")) %>%
+    mutate(impact_rel = (cost_base - cost) / (cost_base ), cost_abs = (cost_base - cost)) %>% group_by(s) %>% mutate(cost_abs_tot = sum(cost_abs), cost_avert_prop = cost_abs / cost_abs_tot) %>% 
+    group_by(outcome) %>% summarise(cost_avert_prop = mean(cost_avert_prop))
+
+
+df_outcomes_prop <- bind_rows(
+    RSV_lav_65_all_qaly_prop %>% mutate(metric = "QALY gain") %>% rename(avert_prop = qaly_avert_prop) %>% mutate(intervention = "65+ lav"),
+    RSV_lav_65_all_cost_prop %>% mutate(metric = "Cost savings") %>% rename(avert_prop = cost_avert_prop) %>% mutate(intervention = "65+ lav"),
+    RSV_lav_75_all_qaly_prop %>% mutate(metric = "QALY gain") %>% rename(avert_prop = qaly_avert_prop) %>% mutate(intervention = "75+ lav"),
+    RSV_lav_75_all_cost_prop %>% mutate(metric = "Cost savings") %>% rename(avert_prop = cost_avert_prop) %>% mutate(intervention = "75+ lav")
+)
+
+df_outcomes_prop %>% 
+    mutate(outcome = recode(outcome, !!!relabel_outcomes)) %>%
+    mutate(outcome = factor(outcome, levels = unique(relabel_outcomes))) %>%
+    ggplot() + geom_col(aes(x = avert_prop, y = metric, fill = outcome), width = 0.7) + 
+    theme_bw() + labs(x = "Proportion attributable to each health outcome", y = "Metric", fill = "Helath outcome") +
+    theme(text = element_text(size = 18)) + 
+    facet_wrap(vars(intervention))
+ggsave(here::here("figs", "burden", "cost_qaly_att_lav.png"), width = 15, height = 12, units = "in", dpi = 300)
+
+
+```

@@ -1,0 +1,109 @@
+```{r}
+
+relabel_sce <- c("base" = "Palivizumab progamme",
+    "mab_sea" = "Seasonal la-mAbs",
+    "mab_sea_cu" = "Seasonal la-mAbs with catch-up", 
+    "mat_sea" = "Seasonal maternal programme",
+    "mat_yr" = "Year-round maternal programme",
+    "mab_yr" = "Year-round la-mAbs programme"
+    )
+
+plan(multisession, workers = 20)
+covs <- crossing(x = seq(50, 90, 10), y = seq(70, 90, 10))
+
+full_data_rshinyA <- map2_df(covs$x, covs$y, 
+    function(x, y) {
+        names_string <- paste0("unbound_ss_", x, "_", y)
+        full_psa <- readRDS(file = here::here("outputs", "scenarios", paste0("opt_", names_string), paste0("full_psa_", "A", ".rds")))
+        full_psa_base <- full_psa %>% summarise(cost = mean(cost), qaly = mean(qaly), .by = c("ppd_mab", "ppd_mat", "scenario")) %>% 
+            mutate(mat_cov = x, mab_cov = y)
+    }
+) %>% mutate(scenario = recode(scenario, !!!relabel_sce))
+
+saveRDS(full_data_rshinyA, here::here("outputs", "shiny", "cea_full.RDS"))
+
+
+
+
+```
+
+
+```{r}
+library(shiny)
+
+# Load required libraries
+
+full_data_rshinyA <- readRDS(here::here("outputs", "shiny", "cea_full.RDS"))
+
+
+# Define the UI for the Shiny app
+ui <- fluidPage(
+  titlePanel("Plot showing CEA planes RSV for intervention programmes"),
+  sidebarLayout(
+    sidebarPanel(
+      # Input control for X-axis value
+      sliderInput("x_value_ccpa", "Monoclonal CCPA", min = 0, max = 200, value = 100, step = 5),
+      sliderInput("x_value_cov", "Monoclonal coverage", min = 70, max = 90, value = 90, step = 10),
+      # Input control for Y-axis value
+      sliderInput("y_value_ccpa", "Maternal vac price", min = 0, max = 200, value = 100, step = 5),
+      sliderInput("y_value_cov", "Maternal vac coverage", min = 50, max = 90, value = 90, step = 10)
+    ),
+    mainPanel(
+      # Output to display the ggplot
+        plotOutput("scatter_plot"),
+        tableOutput("dynamic_table")
+    )
+  )
+)
+
+# Define the server function
+server <- function(input, output) {
+  # Render the ggplot based on user input
+  output$scatter_plot <- renderPlot({
+    tab <- full_data_rshinyA %>%
+        filter(ppd_mab == input$x_value_ccpa, ppd_mat == input$y_value_ccpa) %>%
+        filter(mat_cov == input$y_value_cov, mab_cov == input$x_value_cov) %>%
+        mutate(cost = cost - 43703283) 
+
+    icer_df <- calculate_icers(cost = tab$cost, effect = tab$qaly, strategies = tab$scenario) %>% filter((Status == "ND")) %>%
+        mutate(guide = case_when(ICER <= 20000~"Cost-effective", ICER > 20000~"Not cost-effective" ) ) %>%
+        mutate(Cost_y = lag(Cost), Effect_y = lag(Effect) )
+
+    data <- data.frame(
+      x = input$x_value,
+      y = input$y_value
+    )
+    
+
+    tab %>% 
+        ggplot() + 
+            geom_segment(data = icer_df, aes(x = Effect, xend = Effect_y, y = Cost, yend = Cost_y, color = guide), size = 2) +
+            geom_point(aes(qaly, cost, fill = scenario), shape = 21, size = 4) +
+            scale_color_manual(values = c("Cost-saving" = "green", "Cost-effective" = "green", "Not cost-effective" =  "red")) +         
+            scale_fill_manual(values = c("black", "#c07002", "#fcae44", "#f0de16", "#0d4fb2", "#91BAd6")) + 
+            theme_bw() + labs(x = "Impact (QALY saving)", y = "Cost of programme (£)", fill = "Intervention programme", color = "Type")
+    # You can customize the plot with different ggplot functions and aesthetics
+  })
+
+  output$dynamic_table <- renderTable({
+
+    tab <- full_data_rshinyA %>% filter(ppd_mab == input$x_value_ccpa, ppd_mat == input$y_value_ccpa) %>% 
+         filter(mat_cov == input$y_value_cov, mab_cov == input$x_value_cov)  %>% mutate(cost = cost - 43703283) 
+
+
+    icer_table <- calculate_icers(cost = tab$cost, effect = tab$qaly, strategies = tab$scenario) %>% filter(Status == "ND") %>%
+        mutate(guide = case_when(ICER <= 20000~"Cost-effective", ICER > 20000~"Not cost-effective", is.na(ICER)~"Cost-saving") ) %>%
+        filter(Strategy != "base") %>% 
+        mutate(Cost_y = lag(Cost), Effect_y = lag(Effect) ) %>% select(Strategy, Cost, Effect, ICER, guide)
+
+    
+    # Return the data as a data frame to render the table
+    as.data.frame(icer_table)
+  })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
+
+
+```
