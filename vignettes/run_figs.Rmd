@@ -37,7 +37,7 @@ source(here::here("R", "fig2.R"))
 df_fig2 <- load_data_fig2()
 fig2 <- plot_fig2(df_fig2)
 fig2
-ggsave(here::here("figs", "main", "fig2.png"), width = 15, height = 12, units = "in", dpi = 300)
+ggsave(here::here("figs", "main", "fig2.pdf"), width = 15, height = 12, units = "in", dpi = 300)
 
 # Figure 3
 source(here::here("R", "fig3.R"))
