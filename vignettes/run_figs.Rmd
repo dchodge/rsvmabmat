@@ -5,6 +5,7 @@
 
 ```{r}
 
+#install_github("dchodge/dchodge")
 source("R/main.R")
 source("R/run_scenarios.R")
 source("R/utils.R")
@@ -23,7 +24,7 @@ RSVempty <- add_risks_and_economics(RSVempty)
 
 # Main run
 run_base_sims(RSVempty)
-# Sens analysis 
+# Sens analysis
 run_coverages_sims(RSVempty)
 
 ```
@@ -82,7 +83,7 @@ ggsave(here::here("figs", "main", "fig5.pdf"))
 source(here::here("R", "supp_fig.R"))
 p1 <- plot_burden_by_age_group()
 p2 <- plot_burden_by_outcomes()
-p1 / p2 + plot_layout(guides = "collect")
+p1 / p2 + plot_layout(guides = "collect", heights = c(1,1,2))
 ggsave(here::here("figs", "supp", "figS2.pdf"), width = 12, height = 14)
 
 ```
@@ -110,7 +111,7 @@ for (x in seq(50, 90, 10))
     for (y in seq(70, 90, 10)) {
     string_name <- paste0("unbound_ss_", x, "_", y)
     cea_metrics <- read_rds(file = here::here("outputs", "scenarios", paste0("opt_", string_name), paste0("cea_metrics_", "A", ".rds")))
-    fig_sX <- plot_figs4(cea_metrics, 20000, y, x)
+    fig_sX <- plot_figs4(cea_metrics, 20000, y, x) 
     ggsave(here::here("figs", "supp", paste0("figS_", x, "_", y, ".pdf")), width = 18, height = 20) 
 }
 

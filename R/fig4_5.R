@@ -240,12 +240,16 @@ plot_figs4 <- function(cea_metrics, threshold_icer, mab_cov = 90, mat_cov = 60) 
 
     p1 <- inmb_opt_20000 %>% 
         ggplot() +  
-            geom_tile(aes(x = ppd_mat, y = ppd_mab, fill = scenario, color = uncert), alpha = 0.85, size = 1.1, width=4.3, height=4.5) + 
+            geom_tile(aes(x = ppd_mat, y = ppd_mab, fill = scenario), alpha = 0.85, size = 1.1, width=4.3, height=4.5) +
+            geom_point(aes(x = ppd_mat, y = ppd_mab, color = uncert, alpha = uncert), size = 1.1) +
             scale_fill_manual(values = c("gray50", "#c07002", "#fcae44", "#0d4fb2", "#91BAd6")) + 
-            scale_color_manual(values = c("white", "gray50")) +
+            scale_color_manual(values = c("black", "gray50")) +
+            scale_alpha_manual(values = c(1, 0)) + 
+            guides(color = "none") + 
+            guides(alpha = guide_legend(override.aes = list(fill = "gray", size = 3))) +
             theme_bw() + theme(text = element_text(size = 18), axis.text.x = element_text(angle = 90)) +
             labs(x = "CCPA maternal vaccination (£)",
-            y = "CCPA monolconal antibodies (£)", fill = "Optimal scenario", color = paste0("Confidence, (", threshold_icer_string, " £/QALY)"), 
+            y = "CCPA monolconal antibodies (£)", fill = "Optimal scenario", alpha = paste0("Confidence, (", threshold_icer_string, " £/QALY)"), 
                 subtitle = 
                     paste0(threshold_icer_string, " £/QALY, la-mAB coverage: ", mab_cov, "%, MV covarage: ", mat_cov, "%"),
             title = "Optimal programme with using INMB") +
@@ -267,7 +271,65 @@ plot_figs4 <- function(cea_metrics, threshold_icer, mab_cov = 90, mat_cov = 60) 
         scale_y_continuous(expand = c(0, 0), breaks = seq(0, 200, 5))
 
 
-    p0A <- p1 / p2 + plot_layout(guides = "collect")
+    p0A <- p1 / p2 + plot_layout(guides = "collect")  + plot_annotation(tag_levels = "A")
+    p0A
+}
+
+
+
+plot_figs4_30 <- function(cea_metrics, threshold_icer, mab_cov = 90, mat_cov = 60) {
+
+    relabel_sce <- c("base" = "Palivizumab progamme",
+        "mab_sea" = "Seasonal LA-mAbs",
+        "mab_sea_cu" = "Seasonal LA-mAbs with catch-up", 
+        "mat_sea" = "Seasonal maternal programme",
+        "mat_yr" = "Year-round maternal programme",
+        "mab_yr" = "Year-round LA-mAbs programme"
+        )
+
+    threshold_icer_string <- format(threshold_icer, big.mark = ",")
+
+    require(scales)
+    inmb_opt_30000 <- cea_metrics$inmb %>% mutate(scenario = recode(scenario, !!!relabel_sce)) %>% 
+        filter(threshold == threshold_icer) %>% mutate(uncert = case_when(
+        prob >= 0.9~">90%",
+        prob < 0.9~"<90%")   )
+
+
+    p1 <- inmb_opt_30000 %>% 
+        ggplot() +  
+            geom_tile(aes(x = ppd_mat, y = ppd_mab, fill = scenario), alpha = 0.85, size = 1.1, width=4.3, height=4.5) +
+            geom_point(aes(x = ppd_mat, y = ppd_mab, color = uncert, alpha = uncert), size = 1.1) +
+            scale_fill_manual(values = c("gray50", "#c07002", "#fcae44", "#0d4fb2", "#91BAd6")) + 
+            scale_color_manual(values = c("black", "gray50")) +
+            scale_alpha_manual(values = c(1, 0)) + 
+            guides(color = "none") + 
+            guides(alpha = guide_legend(override.aes = list(fill = "gray", size = 3))) +
+            theme_bw() + theme(text = element_text(size = 18), axis.text.x = element_text(angle = 90)) +
+            labs(x = "CCPA maternal vaccination (£)",
+            y = "CCPA monolconal antibodies (£)", fill = "Optimal scenario", alpha = paste0("Confidence, (", threshold_icer_string, " £/QALY)"), 
+                subtitle = 
+                    paste0(threshold_icer_string, " £/QALY, la-mAB coverage: ", mab_cov, "%, MV covarage: ", mat_cov, "%"),
+            title = "Optimal programme with using INMB") +
+        scale_x_continuous(expand = c(0, 0), breaks = seq(0, 200, 5))  +
+        scale_y_continuous(expand = c(0, 0), breaks = seq(0, 200, 5)) 
+
+
+    p2 <- cea_metrics$evpi %>% filter(threshold == threshold_icer) %>% 
+        ggplot() +  
+            geom_tile(aes(x = ppd_mat, y = ppd_mab, fill = evpi), alpha = 0.85, size = 1.1, width=4.3, height=4.5) + 
+            theme_bw() + theme(text = element_text(size = 18), axis.text.x = element_text(angle = 90)) +
+            labs(x = "CCPA maternal vaccination (£)",
+            y = "CCPA monolconal antibodies (£)", fill = "EVPI", color = paste0("Confidence, (", threshold_icer_string, " £/QALY)"), 
+                subtitle = 
+                    paste0(threshold_icer_string, " £/QALY, la-mAB coverage: ", mab_cov, "%, MV covarage: ", mat_cov, "%"),
+            title = "Expected value of perfect information") +
+            scale_fill_gradient2(low = "white", high = "red", labels = comma) +
+        scale_x_continuous(expand = c(0, 0), breaks = seq(0, 200, 5))  +
+        scale_y_continuous(expand = c(0, 0), breaks = seq(0, 200, 5))
+
+
+    p0A <- p1 / p2 + plot_layout(guides = "collect")  + plot_annotation(tag_levels = "A")
     p0A
 }
 
@@ -296,18 +358,22 @@ plot_figs4_trim <- function(cea_metrics) {
 
     p1 <- inmb_opt_20000 %>% 
         ggplot() +  
-            geom_tile(aes(x = ppd_mat, y = ppd_mab, fill = scenario, color = uncert), alpha = 0.85, size = 1.1, width=4.3, height=4.5) + 
-            scale_fill_manual(values = c("gray50", "#c07002", "#fcae44", "#0d4fb2", "#91BAd6")) + 
-            scale_color_manual(values = c("white", "gray50")) +
+            geom_tile(aes(x = ppd_mat, y = ppd_mab, fill = scenario), alpha = 0.85, size = 1.1, width=4.3, height=4.5) +
+            geom_point(aes(x = ppd_mat, y = ppd_mab, color = uncert, alpha = uncert), size = 1.1) +
+        scale_fill_manual(values = c("gray50", "#c07002", "#fcae44", "#0d4fb2", "#91BAd6")) + 
+            scale_color_manual(values = c("black", "gray50")) +
+            scale_alpha_manual(values = c(1, 0)) + 
+            guides(color = "none") + 
+            guides(alpha = guide_legend(override.aes = list(fill = "gray", size = 3))) +
             theme_bw() + theme(text = element_text(size = 18), axis.text.x = element_text(angle = 90)) +
             labs(x = "CCPA maternal vaccination (£)",
-            y = "CCPA monolconal antibodies (£)", fill = "Optimal scenario", color = "Confidence (20,000 £/QALY)", 
+            y = "CCPA monolconal antibodies (£)", fill = "Optimal scenario", alpha = "Confidence (20,000 £/QALY)", 
             subtitle = "20,000£/QALY",
             title = "Optimal programme with using INMB") +
         scale_x_continuous(expand = c(0, 0), breaks = seq(0, 200, 5))  +
         scale_y_continuous(expand = c(0, 0), breaks = seq(0, 200, 5)) 
 
-    p0A <- p1 + plot_layout(guides = "collect")
+    p0A <- p1 + plot_layout(guides = "collect") + plot_annotation(tag_levels = "A")
     p0A
 }
 

@@ -28,13 +28,18 @@ plot_fig3a <- function(df_fig2) {
     RSV_mat_compare_eff_sum <- RSV_mat_compare_eff %>% ungroup %>% summarise(total_case_averted = sum(total_case_averted), doses = mean(doses_mat), .by = c("s", "outcome", "intervention"))
     RSV_mab_compare_eff_sum <- RSV_mab_compare_eff %>% ungroup %>% summarise(total_case_averted = sum(total_case_averted), doses = mean(doses_mab), .by = c("s", "outcome", "intervention"))
 
-    p_eff <- bind_rows(
+    p_eff_df <- bind_rows(
         RSV_mat_compare_eff_sum,
         RSV_mab_compare_eff_sum
     ) %>% 
         mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
             "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" ))) %>%
-            mutate(vaccine_avert = 1 / (total_case_averted / doses)) %>%
+            mutate(vaccine_avert = 1 / (total_case_averted / doses)) 
+
+    # Need for manuscript
+    p_eff_df %>% group_by(outcome, intervention) %>% mean_qi(vaccine_avert) %>% as.data.frame
+
+    p_eff_df %>%
         ggplot() + 
             stat_pointinterval(aes(x = intervention, y = vaccine_avert, fill = intervention), shape = 21, point_size = 5, position = position_dodge(0.5)) + 
             labs(y = "Number needed to vaccinate", x = "Intervention programme", fill = "Intervention") +
@@ -92,7 +97,8 @@ plot_fig3bc <- function() {
         mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
             "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" )))
 
-    plot_qalys %>% summarise(get_mean_95ci(qaly_averted) / 10, .by = c("intervention")) %>%
+    # Manuscript
+    plot_qalys %>% summarise(get_mean_95ci(qaly_averted) , .by = c("intervention")) %>%
         mutate(table = paste0(round(mean, 0), " (", round(lb, 0), "-", round(ub, 0), ")"))
 
     p1 <- plot_qalys %>% 
@@ -140,7 +146,8 @@ plot_fig3bc <- function() {
         mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
             "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" ))) 
 
-    plot_costs %>% summarise(get_mean_95ci(cost_averted) / 10, .by = c("intervention")) %>%
+    # Manuscript
+    plot_costs %>% summarise(get_mean_95ci(cost_averted), .by = c("intervention")) %>%
         mutate(table = paste0(round(mean / 1000, 0), " (", round(lb / 1000, 0), "-", round(ub / 1000, 0), ")"))
 
 

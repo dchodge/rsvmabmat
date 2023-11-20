@@ -59,7 +59,7 @@ plot_fig2 <- function(df_fig2) {
         mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
             "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" ))) %>%
         ggplot() + 
-            stat_lineribbon(aes(x = age_group, y = prop_cases_averted, fill = intervention), alpha = 0.5) + 
+            stat_lineribbon(aes(x = age_group, y = prop_cases_averted, fill = intervention), alpha = 0.5, .width = 0.95) + 
             facet_grid(rows = vars(outcome), cols = vars(intervention)) + theme_bw() + 
             scale_fill_manual(values = c("#0d4fb2", "#91BAd6", "#c07002", "#fcae44", "#f0de16"))  + 
             labs(x = "Age group", y = "Proportional reduction in cases per age group") + 

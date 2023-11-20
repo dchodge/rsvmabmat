@@ -62,8 +62,6 @@ ggsave(here::here("outputs", "dhsc", "fig_peak.pdf"))
 ```
 
 
-
-
 ## MATERNAL VACCINATION IMPACT
 
 ```{r}
@@ -397,6 +395,11 @@ plot_qalys <- bind_rows(
 plot_qalys %>% summarise(get_mean_95ci(qaly_averted) / 10, .by = c("intervention")) %>%
     mutate(table = paste0(round(mean, 0), " (", round(lb, 0), "-", round(ub, 0), ")"))
 
+
+plot_qalys %>% summarise(get_mean_95ci(qaly_averted), .by = c("intervention")) %>%
+    mutate(table = paste0(round(mean, 0), " (", round(lb, 0), "-", round(ub, 0), ")"))
+
+
 p1 <- plot_qalys %>% 
     mutate(intervention = factor(intervention, levels = c("Seasonal maternal", "Year-round maternal", 
          "Seasonal la-mAB", "Seasonal la-mAB with\n annual catch-up",  "Year-round la-mAB" ))) %>%
@@ -445,6 +448,8 @@ plot_costs <- bind_rows(
 plot_costs %>% summarise(get_mean_95ci(cost_averted) / 10, .by = c("intervention")) %>%
     mutate(table = paste0(round(mean / 1000, 0), " (", round(lb / 1000, 0), "-", round(ub / 1000, 0), ")"))
 
+plot_costs %>% summarise(get_mean_95ci(cost_averted) , .by = c("intervention")) %>%
+    mutate(table = paste0(round(mean / 1000, 0), " (", round(lb / 1000, 0), "-", round(ub / 1000, 0), ")"))
 
 p2 <-  plot_costs %>% ggplot() + 
         geom_boxplot(aes(x = intervention, cost_averted, fill = intervention)) + 

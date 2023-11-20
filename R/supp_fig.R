@@ -344,3 +344,165 @@ plot_finer <- function(summarise_detailed) {
         scale_x_continuous(breaks = seq(0, 200, 20)) +
         theme(text = element_text(size = 16))
 }
+
+
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mat_pal.RData")) # RSV_mat_vhr
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mat_vhr.RData")) # RSV_mat_vhr
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mat_s.RData")) # RSV_mat_s
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mat_yr.RData")) # RSV_mat_yr
+
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_pal.RData")) # RSV_mab_vhr
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_vhr.RData")) # RSV_mab_vhr
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_s.RData"))  # RSV_mab_s
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_s_cu.RData"))  # RSV_mab_s
+load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_yr.RData"))  # RSV_mab_s
+
+RSV_mat_pal_sum <- RSV_mat_pal %>% summarise_outcomes
+RSV_mat_vhr_sum <- RSV_mat_vhr %>% summarise_outcomes
+RSV_mat_s_sum <- RSV_mat_s %>% summarise_outcomes
+RSV_mat_yr_sum <- RSV_mat_yr %>% summarise_outcomes
+
+RSV_mab_pal_sum <- RSV_mab_pal %>% summarise_outcomes
+RSV_mab_vhr_sum <- RSV_mab_vhr %>% summarise_outcomes
+RSV_mab_s_sum <- RSV_mab_s %>% summarise_outcomes
+RSV_mab_s_cu_sum <- RSV_mab_s_cu %>% summarise_outcomes
+RSV_mab_yr_sum <- RSV_mab_yr %>% summarise_outcomes
+  
+relabel_outcomes <- c("symptomatic" = "Symptomatic cases", "gp" = "GP consultations", 
+        "a_e" = "A+E visits", "hosp" = "Hospital cases", "icu" = "ICU admissions",  "death" = "Deaths") 
+
+
+df_compare <- bind_rows(
+    RSV_mat_pal_sum %>% mutate(type = "Base"),
+    RSV_mat_s_sum %>% mutate(type = "Seasonal MV"),
+    RSV_mat_yr_sum %>% mutate(type = "Year-round MV"),
+    RSV_mab_s_sum %>% mutate(type = "Seasonal la-mAB"),
+    RSV_mab_s_cu_sum %>% mutate(type = "Seasonal la-mAB w. catch-up"),
+    RSV_mab_yr_sum %>% mutate(type = "Year-round la-mAB")
+) %>% mutate(
+    age_group2 = case_when(
+        age_group <=2 ~ "0-2 months",
+        age_group > 2 & age_group <= 6 ~ "3-5 months",
+        age_group > 6 & age_group <= 12  ~ "6-11 months",
+        age_group > 12 & age_group <= 16 ~ "1–4 years",
+        age_group > 16 ~ "5+ years"
+    )
+) %>% ungroup %>% summarise(cases_total = mean(cases_total), .by = c("s", "outcome", "type", "age_group2")) %>% 
+    group_by(outcome, type, age_group2) %>% 
+    recode_and_factor(relabel_outcomes, "outcome") %>% 
+    factor_only(c("0-2 months", "3-5 months", "6-11 months", "1–4 years", "5+ years"), "age_group2") %>%
+    factor_only(c("Base", "Seasonal MV", "Year-round MV", "Seasonal la-mAB", "Seasonal la-mAB w. catch-up", "Year-round la-mAB"), "type")
+
+
+
+df_compare_mean_qi <- df_compare %>% mean_qi(cases_total)
+
+df_compare_prop_mean_qi <- df_compare %>% filter(type == "Base") %>% rename(cases_total_base = cases_total) %>% ungroup %>% select(!type) %>% left_join(
+    df_compare %>% filter(type != "Base") 
+) %>% mutate(prop_reduction = (cases_total_base - cases_total) / cases_total_base) %>% group_by(outcome, type, age_group2) %>% mean_qi(prop_reduction)
+
+
+df_compare_mean_qi %>%
+    ggplot() + 
+        geom_col(aes(x = cases_total, y = age_group2, fill = type), position = position_dodge(0.75), width = 0.75) + 
+        geom_errorbar(aes(xmin = .lower, xmax = .upper , y = age_group2, group = type), position = position_dodge(0.75), width = 0.75) + 
+        scale_fill_manual(values = c("black", "#0d4fb2", "#91BAd6", "#c07002", "#fcae44", "#f0de16")) +
+        facet_wrap(vars(outcome), scales = "free_x") + theme_bw() + 
+        labs(x = "Annual number of cases", y = "Age group", fill = "Intervention programme")
+ggsave(here::here("figs", "supp", "impact_absolute.pdf") )
+
+df_compare_prop_mean_qi %>%
+    ggplot() + 
+        geom_col(aes(x = prop_reduction, y = age_group2, fill = type), position = position_dodge(0.75), width = 0.75) + 
+        geom_errorbar(aes(xmin = .lower, xmax = .upper , y = age_group2, group = type), position = position_dodge(0.75), width = 0.75) + 
+        scale_fill_manual(values = c("#0d4fb2", "#91BAd6", "#c07002", "#fcae44", "#f0de16")) +
+        facet_wrap(vars(outcome), scales = "free_x") + theme_bw() + 
+        labs(x = "Proportional reduction in cases", y = "Age group", fill = "Intervention programme")
+ggsave(here::here("figs", "supp", "impact_prop.pdf") )
+
+
+
+df_compare_mean_qi_tb <- df_compare_mean_qi %>% mutate(
+    cases_total = paste0(round(cases_total, 0), " (", round(.lower, 0), "–", round(.upper, 0), ")")
+) %>% select(c(type, age_group2, outcome, cases_total)) %>%
+    pivot_wider(names_from = "outcome", values_from = "cases_total")
+
+df_compare_prop_mean_qi_tb <- df_compare_prop_mean_qi %>% mutate(
+    prop_reduction = paste0(round(prop_reduction, 3), " (", round(.lower, 3), "–", round(.upper, 3), ")")
+) %>% select(c(type, age_group2, outcome, prop_reduction)) %>%
+    pivot_wider(names_from = "outcome", values_from = "prop_reduction") 
+
+create_gt_table <- function(df) { 
+    df %>% gt(groupname_col = "type", rowname_col = "age_group2") %>%
+    tab_stubhead(label = "Age group") %>%
+    tab_spanner(
+        label = "Healthcare outcome",
+        columns = contains(
+            relabel_outcomes),
+        level = 1,
+        id = "date_time_spanner"
+    ) %>% 
+    cols_align( align = "right", columns = c("type", "age_group2") ) %>%
+    cols_label(age_group2 = "Age group") %>% 
+    tab_style(
+        style = cell_text(
+        transform = "uppercase"
+        ),
+    locations = cells_column_labels()) %>% 
+    tab_style(
+        style = cell_text(
+        style = "italic",
+        transform = "uppercase"
+        ),
+    locations = cells_row_groups()) %>%
+    tab_style(
+        style = cell_text(
+        transform = "uppercase"
+        ),
+    locations = cells_column_spanners()) %>%
+    tab_style(
+        style = cell_fill(color = "gray98"),
+        locations = cells_title()
+    )
+}
+
+df_compare_mean_qi_gt <- df_compare_mean_qi_tb %>% create_gt_table
+df_compare_prop_mean_qi_gt <- df_compare_prop_mean_qi_tb %>% create_gt_table
+df_compare_mean_qi_gt %>% gtsave(here::here("figs", "tabs", "tab_absolute.docx"))
+df_compare_prop_mean_qi_gt %>% gtsave(here::here("figs", "tabs", "tab_prop.docx"))
+
+
+
+
+
+df_compare <- bind_rows(
+    RSV_mat_pal_sum %>% mutate(type = "Base"),
+    RSV_mat_s_sum %>% mutate(type = "Seasonal MV"),
+    RSV_mat_yr_sum %>% mutate(type = "Year-round MV"),
+    RSV_mab_s_sum %>% mutate(type = "Seasonal la-mAB"),
+    RSV_mab_s_cu_sum %>% mutate(type = "Seasonal la-mAB w. catch-up"),
+    RSV_mab_yr_sum %>% mutate(type = "Year-round la-mAB")
+) %>% mutate(
+    age_group2 = case_when(
+        age_group <=2 ~ "0-2 months",
+        age_group > 2 & age_group <= 6 ~ "3-5 months",
+        age_group > 6 & age_group <= 12  ~ "6-11 months",
+        age_group == 13 ~ "1 year",
+        age_group > 13 & age_group <= 16 ~ "2–4 years",
+        age_group > 16 ~ "5+ years"
+    )
+) %>% ungroup %>% summarise(cases_total = mean(cases_total), .by = c("s", "outcome", "type", "age_group2")) %>% 
+    group_by(outcome, type, age_group2) %>% 
+    recode_and_factor(relabel_outcomes, "outcome") %>% 
+    factor_only(c("0-2 months", "3-5 months", "6-11 months", "1 year", "2–4 years", "5+ years"), "age_group2") %>%
+    factor_only(c("Base", "Seasonal MV", "Year-round MV", "Seasonal la-mAB", "Seasonal la-mAB w. catch-up", "Year-round la-mAB"), "type")
+
+
+
+df_compare_mean_qi <- df_compare %>% mean_qi(cases_total)
+
+df_compare_prop_mean_qi <- df_compare %>% filter(type == "Base") %>% rename(cases_total_base = cases_total) %>% ungroup %>% select(!type) %>% left_join(
+    df_compare %>% filter(type != "Base") 
+) %>% mutate(prop_reduction = (cases_total_base - cases_total) / cases_total_base) %>% group_by(outcome, type, age_group2) %>% mean_qi(prop_reduction)
+
+df_compare_prop_mean_qi %>% as.data.frame()

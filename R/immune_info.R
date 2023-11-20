@@ -1,11 +1,17 @@
 # These are from fitted erlang-3 distributions
 
-mat_bounded_wane_par <- readRDS(file = here::here("data", "efficacies", "mat_bounded_wane.rds"))
-mat_nobound_wane_par <- readRDS(file = here::here("data", "efficacies", "mat_nobound_wane.rds"))
-nmab_bounded_wane <- readRDS(file = here::here("data", "efficacies", "nmab_bounded_wane.rds"))
-nmab_nobound_wane <- readRDS(file = here::here("data", "efficacies", "nmab_nobound_wane.rds"))
-oa_papi_bounded_wane <- readRDS(file = here::here("data", "efficacies", "oa_papi_bounded_wane.rds"))
-oa_papi_nobound_wane <- readRDS(file = here::here("data", "efficacies", "oa_papi_nobound_wane.rds"))
+mat_bounded_wane_par <- load(file = here::here("data", "efficacies", "mat_bounded_post_wane.RData"))
+mat_bounded_wane_par <- get(mat_bounded_wane_par)
+mat_nobound_wane_par <- load(file = here::here("data", "efficacies", "mat_nobound_post_wane.RData"))
+mat_nobound_wane_par <- get(mat_nobound_wane_par)
+nmab_bounded_wane <- load(file = here::here("data", "efficacies", "nmab_bounded_post_wane.RData"))
+nmab_bounded_wane <- get(nmab_bounded_wane)
+nmab_nobound_wane <- load(file = here::here("data", "efficacies", "nmab_nobound_post_wane.RData"))
+nmab_nobound_wane <- get(nmab_nobound_wane)
+oa_papi_bounded_wane <- load(file = here::here("data", "efficacies", "oa_papi_bounded_post_wane.RData"))
+oa_papi_bounded_wane <- get(oa_papi_bounded_wane)
+oa_papi_nobound_wane <- load(file = here::here("data", "efficacies", "oa_papi_nobound_post_wane.RData"))
+oa_papi_nobound_wane <- get(oa_papi_nobound_wane)
 
 df_eff_disease_mat <- data.frame(
     product = "mat",
@@ -35,11 +41,11 @@ df_eff_disease_papi <- data.frame(
     product = "lav",
     infection = 0.717,
     symptomatic = 0.717,
-    gp = 0.717,
-    hosp = 0.94,
-    a_e = 0.717,
-    icu = 0.94,
-    death = 0.94
+    gp = 0.826,
+    hosp = 0.941,
+    a_e = 0.826,
+    icu = 0.941,
+    death = 0.941
 )
 
 disease_eff_values <- bind_rows(df_eff_disease_mat, df_eff_disease_nmab, df_eff_disease_papi)
@@ -192,3 +198,97 @@ immune_profiles_unbound <- list(
 
 saveRDS(immune_profiles_bounded, here::here("data", "efficacies", "immune_profiles_bounded.RDS"))
 saveRDS(immune_profiles_unbound, here::here("data", "efficacies", "immune_profiles_unbound.RDS"))
+
+
+df_eff_disease_mat <- data.frame(
+    product = "mat",
+    infection = 0.513,
+    symptomatic = 0.513,
+    gp = 0.513,
+    hosp = 0.694,
+    a_e = 0.694,
+    icu = 0.694,
+    death = 0.694
+)
+
+# need to check waneing model correct
+df_eff_disease_nmab <- data.frame(
+    product = "mab",
+    infection = 0.795,
+    symptomatic = 0.795,
+    gp = 0.795,
+    hosp = 0.795,
+    a_e = 0.795,
+    icu = 0.860,
+    death = 0.860
+)
+
+# need to check waneing model correct
+df_eff_disease_pfizer <- data.frame(
+    product = "pfi_oa",
+    infection = 0.717,
+    symptomatic = 0.621,
+    gp = 0.667,
+    hosp = 0.857,
+    a_e = 0.667,
+    icu = 0.857,
+    death = 0.857
+)
+
+# need to check waneing model correct
+df_eff_disease_gsk <- data.frame(
+    product = "gsk_oa",
+    infection = 0.717,
+    symptomatic = 0.717,
+    gp = 0.826,
+    hosp = 0.941,
+    a_e = 0.826,
+    icu = 0.941,
+    death = 0.941
+)
+
+full_info_o <- bind_rows(
+    bind_rows(
+        df_eff_disease_mat,
+        df_eff_disease_nmab,
+        df_eff_disease_pfizer,
+        df_eff_disease_gsk
+    ) %>% mutate(type = "efficacy"),
+
+    bind_rows(
+        c(df_eff_disease_mat[1], df_eff_disease_mat[2:8]/as.numeric(df_eff_disease_mat[2])),
+        c(df_eff_disease_nmab[1], df_eff_disease_nmab[2:8]/as.numeric(df_eff_disease_nmab[2])),
+        c(df_eff_disease_pfizer[1], df_eff_disease_pfizer[2:8]/as.numeric(df_eff_disease_pfizer[2])),
+        c(df_eff_disease_gsk[1], df_eff_disease_gsk[2:8]/as.numeric(df_eff_disease_gsk[2]))
+    ) %>% mutate(type = "multiplier")
+)
+
+### Average over time period and comparison to data
+
+# Get proporiton protected 1 year after vaccination
+point_prot <- function(day_no, efficacy_data) {
+    c(
+        1:4000 %>% map_dbl(~efficacy_data$wane_a_er3[.x] * (1 - pgamma(day_no, 3, 1/efficacy_data$wane_b_er3[.x])) ) %>% mean,
+        1:4000 %>% map_dbl(~efficacy_data$wane_a_er3[.x] * (1 - pgamma(day_no, 3, 1/efficacy_data$wane_b_er3[.x])) ) %>% quantile(c(0.025, 0.975))
+    )
+}
+
+average_prot <- function(day_no, efficacy_data) {
+    c(
+        1:4000 %>% map_dbl(~efficacy_data$wane_a_er3[.x] * (1 - pgamma(day_no, 3, 1/efficacy_data$wane_b_er3[.x])) %>% mean ) %>% mean,
+        1:4000 %>% map_dbl(~efficacy_data$wane_a_er3[.x] * (1 - pgamma(day_no, 3, 1/efficacy_data$wane_b_er3[.x])) %>% mean) %>% quantile(c(0.025, 0.975))
+    )
+}
+
+# Get data on efficacy of vaccination type for manuscript
+
+#point_prot(365, efficacy_mat)
+#point_prot(365, efficacy_mab)
+#point_prot(365, efficacy_lav)
+
+
+#average_prot(1:180, efficacy_mat)
+#average_prot(1:150, efficacy_mab)
+#average_prot(1:180, efficacy_lav)
+
+
