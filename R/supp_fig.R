@@ -357,6 +357,8 @@ load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_s.RDat
 load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_s_cu.RData"))  # RSV_mab_s
 load(file = here::here("outputs", "scenarios", "opt_unbound_ss", "RSV_mab_yr.RData"))  # RSV_mab_s
 
+RSV_mat_pal %>% summarise_outcomes %>% filter(s == 2, outcome == "hosp")
+
 RSV_mat_pal_sum <- RSV_mat_pal %>% summarise_outcomes
 RSV_mat_vhr_sum <- RSV_mat_vhr %>% summarise_outcomes
 RSV_mat_s_sum <- RSV_mat_s %>% summarise_outcomes
@@ -371,6 +373,16 @@ RSV_mab_yr_sum <- RSV_mab_yr %>% summarise_outcomes
 relabel_outcomes <- c("symptomatic" = "Symptomatic cases", "gp" = "GP consultations", 
         "a_e" = "A+E visits", "hosp" = "Hospital cases", "icu" = "ICU admissions",  "death" = "Deaths") 
 
+recode_and_factor <- function(df, relabel_outcomes, covar_str) {
+    covar <- str2lang(covar_str)
+    df %>% mutate(!!covar := recode(!!covar, !!!relabel_outcomes)) %>%
+        mutate(!!covar := factor(!!covar, levels = relabel_outcomes))
+}
+
+factor_only <- function(df, relabel_outcomes, covar_str) {
+    covar <- str2lang(covar_str)
+    df %>% mutate(!!covar := factor(!!covar, levels = relabel_outcomes))
+}
 
 df_compare <- bind_rows(
     RSV_mat_pal_sum %>% mutate(type = "Base"),
@@ -387,7 +399,7 @@ df_compare <- bind_rows(
         age_group > 12 & age_group <= 16 ~ "1–4 years",
         age_group > 16 ~ "5+ years"
     )
-) %>% ungroup %>% summarise(cases_total = mean(cases_total), .by = c("s", "outcome", "type", "age_group2")) %>% 
+) %>% ungroup %>% summarise(cases_total = sum(cases_total), .by = c("s", "outcome", "type", "age_group2")) %>% 
     group_by(outcome, type, age_group2) %>% 
     recode_and_factor(relabel_outcomes, "outcome") %>% 
     factor_only(c("0-2 months", "3-5 months", "6-11 months", "1–4 years", "5+ years"), "age_group2") %>%
@@ -465,13 +477,12 @@ create_gt_table <- function(df) {
         locations = cells_title()
     )
 }
+library(gt)
 
 df_compare_mean_qi_gt <- df_compare_mean_qi_tb %>% create_gt_table
 df_compare_prop_mean_qi_gt <- df_compare_prop_mean_qi_tb %>% create_gt_table
 df_compare_mean_qi_gt %>% gtsave(here::here("figs", "tabs", "tab_absolute.docx"))
 df_compare_prop_mean_qi_gt %>% gtsave(here::here("figs", "tabs", "tab_prop.docx"))
-
-
 
 
 
@@ -491,7 +502,7 @@ df_compare <- bind_rows(
         age_group > 13 & age_group <= 16 ~ "2–4 years",
         age_group > 16 ~ "5+ years"
     )
-) %>% ungroup %>% summarise(cases_total = mean(cases_total), .by = c("s", "outcome", "type", "age_group2")) %>% 
+) %>% ungroup %>% summarise(cases_total = sum(cases_total), .by = c("s", "outcome", "type", "age_group2")) %>% 
     group_by(outcome, type, age_group2) %>% 
     recode_and_factor(relabel_outcomes, "outcome") %>% 
     factor_only(c("0-2 months", "3-5 months", "6-11 months", "1 year", "2–4 years", "5+ years"), "age_group2") %>%
@@ -504,5 +515,3 @@ df_compare_mean_qi <- df_compare %>% mean_qi(cases_total)
 df_compare_prop_mean_qi <- df_compare %>% filter(type == "Base") %>% rename(cases_total_base = cases_total) %>% ungroup %>% select(!type) %>% left_join(
     df_compare %>% filter(type != "Base") 
 ) %>% mutate(prop_reduction = (cases_total_base - cases_total) / cases_total_base) %>% group_by(outcome, type, age_group2) %>% mean_qi(prop_reduction)
-
-df_compare_prop_mean_qi %>% as.data.frame()
